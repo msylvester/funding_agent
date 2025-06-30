@@ -1,0 +1,239 @@
+import requests
+from bs4 import BeautifulSoup
+import pandas as pd
+import time
+import json
+from datetime import datetime, timedelta
+import re
+
+class FundingScraper:
+    def __init__(self):
+        self.session = requests.Session()
+        self.session.headers.update({
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        })
+        self.funding_data = []
+    
+    def scrape_techcrunch_funding(self, pages=5):
+        """Scrape TechCrunch funding news"""
+        print("Scraping TechCrunch funding news...")
+        
+        for page in range(1, pages + 1):
+            url = f"https://techcrunch.com/category/startups/page/{page}/"
+            
+            try:
+                response = self.session.get(url)
+                soup = BeautifulSoup(response.content, 'html.parser')
+                
+                articles = soup.find_all('article', class_='post-block')
+                
+                for article in articles:
+                    title_elem = article.find('h2', class_='post-block__title')
+                    if not title_elem:
+                        continue
+                        
+                    title = title_elem.get_text(strip=True)
+                    link = title_elem.find('a')['href'] if title_elem.find('a') else None
+                    
+                    # Check if title contains funding keywords
+                    funding_keywords = ['raises', 'funding', 'series', 'million', 'billion', 'investment', 'capital']
+                    if any(keyword in title.lower() for keyword in funding_keywords):
+                        
+                        date_elem = article.find('time')
+                        date = date_elem.get('datetime') if date_elem else None
+                        
+                        self.funding_data.append({
+                            'source': 'TechCrunch',
+                            'title': title,
+                            'url': link,
+                            'date': date,
+                            'scraped_at': datetime.now().isoformat()
+                        })
+                
+                time.sleep(2)  # Be respectful to the server
+                
+            except Exception as e:
+                print(f"Error scraping TechCrunch page {page}: {e}")
+    
+    def scrape_crunchbase_news(self):
+        """Scrape Crunchbase news (requires API key for full access)"""
+        print("Scraping Crunchbase news...")
+        
+        # Note: For full Crunchbase data, you'd need their API
+        # This is a simplified version for their public news
+        url = "https://news.crunchbase.com/news-type/funding/"
+        
+        try:
+            response = self.session.get(url)
+            soup = BeautifulSoup(response.content, 'html.parser')
+            
+            articles = soup.find_all('article', class_='post')
+            
+            for article in articles[:20]:  # Limit to recent articles
+                title_elem = article.find('h2') or article.find('h3')
+                if not title_elem:
+                    continue
+                    
+                title = title_elem.get_text(strip=True)
+                link_elem = title_elem.find('a')
+                link = link_elem['href'] if link_elem else None
+                
+                date_elem = article.find('time')
+                date = date_elem.get('datetime') if date_elem else None
+                
+                self.funding_data.append({
+                    'source': 'Crunchbase News',
+                    'title': title,
+                    'url': link,
+                    'date': date,
+                    'scraped_at': datetime.now().isoformat()
+                })
+                
+        except Exception as e:
+            print(f"Error scraping Crunchbase: {e}")
+    
+    def scrape_tech_startups(self):
+        """Scrape Tech Startups funding news"""
+        print("Scraping Tech Startups...")
+        
+        url = "https://techstartups.com/category/funding/"
+        
+        try:
+            response = self.session.get(url)
+            soup = BeautifulSoup(response.content, 'html.parser')
+            
+            articles = soup.find_all('article')
+            
+            for article in articles[:15]:
+                title_elem = article.find('h2') or article.find('h3')
+                if not title_elem:
+                    continue
+                    
+                title = title_elem.get_text(strip=True)
+                link_elem = title_elem.find('a')
+                link = link_elem['href'] if link_elem else None
+                
+                date_elem = article.find('time')
+                date = date_elem.get('datetime') if date_elem else None
+                
+                self.funding_data.append({
+                    'source': 'Tech Startups',
+                    'title': title,
+                    'url': link,
+                    'date': date,
+                    'scraped_at': datetime.now().isoformat()
+                })
+                
+        except Exception as e:
+            print(f"Error scraping Tech Startups: {e}")
+    
+    def extract_funding_details(self, title):
+        """Extract funding amount and company name from title"""
+        # Regex patterns for common funding formats
+        amount_patterns = [
+            r'\$(\d+(?:\.\d+)?)\s*(million|billion|M|B)',
+            r'(\d+(?:\.\d+)?)\s*million',
+            r'(\d+(?:\.\d+)?)\s*billion'
+        ]
+        
+        amount = None
+        for pattern in amount_patterns:
+            match = re.search(pattern, title, re.IGNORECASE)
+            if match:
+                if len(match.groups()) == 2:
+                    amount = f"${match.group(1)} {match.group(2)}"
+                else:
+                    amount = f"${match.group(1)} million"
+                break
+        
+        # Extract company name (usually at the beginning)
+        company_match = re.match(r'^([^,]+)', title)
+        company = company_match.group(1).strip() if company_match else None
+        
+        return {
+            'company': company,
+            'amount': amount
+        }
+    
+    def process_funding_data(self):
+        """Process and enrich the scraped data"""
+        print("Processing funding data...")
+        
+        processed_data = []
+        for item in self.funding_data:
+            details = self.extract_funding_details(item['title'])
+            
+            processed_item = {
+                **item,
+                'company_name': details['company'],
+                'funding_amount': details['amount'],
+                'is_recent': self.is_recent_funding(item['date'])
+            }
+            processed_data.append(processed_item)
+        
+        return processed_data
+    
+    def is_recent_funding(self, date_str, days=7):
+        """Check if funding is within specified days"""
+        if not date_str:
+            return False
+            
+        try:
+            funding_date = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+            cutoff_date = datetime.now() - timedelta(days=days)
+            return funding_date >= cutoff_date
+        except:
+            return False
+    
+    def save_to_csv(self, filename='funding_data.csv'):
+        """Save data to CSV file"""
+        processed_data = self.process_funding_data()
+        df = pd.DataFrame(processed_data)
+        df.to_csv(filename, index=False)
+        print(f"Data saved to {filename}")
+        return df
+    
+    def save_to_json(self, filename='funding_data.json'):
+        """Save data to JSON file"""
+        processed_data = self.process_funding_data()
+        with open(filename, 'w') as f:
+            json.dump(processed_data, f, indent=2)
+        print(f"Data saved to {filename}")
+    
+    def run_scraper(self):
+        """Run the complete scraping process"""
+        print("Starting funding data scraper...")
+        
+        # Scrape different sources
+        self.scrape_techcrunch_funding(pages=3)
+        time.sleep(3)
+        
+        self.scrape_crunchbase_news()
+        time.sleep(3)
+        
+        self.scrape_tech_startups()
+        
+        print(f"Scraped {len(self.funding_data)} articles")
+        
+        # Save data
+        df = self.save_to_csv()
+        self.save_to_json()
+        
+        # Show recent funding summary
+        recent_funding = df[df['is_recent'] == True]
+        print(f"\nFound {len(recent_funding)} recent funding announcements")
+        
+        return df
+
+# Usage example
+if __name__ == "__main__":
+    scraper = FundingScraper()
+    
+    # Run the scraper
+    funding_df = scraper.run_scraper()
+    
+    # Display recent funding
+    recent_funding = funding_df[funding_df['is_recent'] == True]
+    print("\nRecent Funding Announcements:")
+    for _, row in recent_funding.iterrows():
+        print(f"- {row['company_name']}: {row['funding_amount']} ({row['source']})")
