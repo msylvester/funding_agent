@@ -19,7 +19,7 @@ class FundingScraper:
         print("Scraping TechCrunch funding news...")
         
         for page in range(1, pages + 1):
-            url = f"https://techcrunch.com/category/startups/page/{page}/"
+            url = f"https://techcrunch.com/category/fundraising/page/{page}/"
             print(f"Scraping URL: {url}")
             
             try:
@@ -55,21 +55,18 @@ class FundingScraper:
                         link_elem = title_elem.find('a')
                         link = link_elem.get('href') if link_elem else None
                     
-                    # Check if title contains funding keywords
-                    funding_keywords = ['raises', 'funding', 'series', 'million', 'billion', 'investment', 'capital']
-                    if any(keyword in title.lower() for keyword in funding_keywords):
-                        
-                        date_elem = article.find('time')
-                        date = date_elem.get('datetime') if date_elem else None
-                        
-                        self.funding_data.append({
-                            'source': 'TechCrunch',
-                            'title': title,
-                            'url': link,
-                            'date': date,
-                            'scraped_at': datetime.now().isoformat()
-                        })
-                        print(f"Found funding article: {title[:50]}...")
+                    # All articles in fundraising category are funding-related
+                    date_elem = article.find('time')
+                    date = date_elem.get('datetime') if date_elem else None
+                    
+                    self.funding_data.append({
+                        'source': 'TechCrunch',
+                        'title': title,
+                        'url': link,
+                        'date': date,
+                        'scraped_at': datetime.now().isoformat()
+                    })
+                    print(f"Found funding article: {title[:50]}...")
                 
                 time.sleep(2)  # Be respectful to the server
                 
