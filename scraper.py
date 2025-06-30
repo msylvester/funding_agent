@@ -23,17 +23,36 @@ class FundingScraper:
             
             try:
                 response = self.session.get(url)
+                print(f"TechCrunch page {page} status: {response.status_code}")
                 soup = BeautifulSoup(response.content, 'html.parser')
                 
-                articles = soup.find_all('article', class_='post-block')
+                # Try multiple selectors for articles
+                articles = (soup.find_all('article', class_='post-block') or 
+                           soup.find_all('article') or
+                           soup.find_all('div', class_='post-block'))
+                
+                print(f"Found {len(articles)} articles on page {page}")
                 
                 for article in articles:
-                    title_elem = article.find('h2', class_='post-block__title')
+                    # Try multiple selectors for title
+                    title_elem = (article.find('h2', class_='post-block__title') or
+                                 article.find('h2') or
+                                 article.find('h3') or
+                                 article.find('a'))
+                    
                     if not title_elem:
                         continue
                         
                     title = title_elem.get_text(strip=True)
-                    link = title_elem.find('a')['href'] if title_elem.find('a') else None
+                    if not title:
+                        continue
+                        
+                    link = None
+                    if title_elem.name == 'a':
+                        link = title_elem.get('href')
+                    else:
+                        link_elem = title_elem.find('a')
+                        link = link_elem.get('href') if link_elem else None
                     
                     # Check if title contains funding keywords
                     funding_keywords = ['raises', 'funding', 'series', 'million', 'billion', 'investment', 'capital']
@@ -49,6 +68,7 @@ class FundingScraper:
                             'date': date,
                             'scraped_at': datetime.now().isoformat()
                         })
+                        print(f"Found funding article: {title[:50]}...")
                 
                 time.sleep(2)  # Be respectful to the server
                 
@@ -65,18 +85,27 @@ class FundingScraper:
         
         try:
             response = self.session.get(url)
+            print(f"Crunchbase status: {response.status_code}")
             soup = BeautifulSoup(response.content, 'html.parser')
             
-            articles = soup.find_all('article', class_='post')
+            # Try multiple selectors for articles
+            articles = (soup.find_all('article', class_='post') or
+                       soup.find_all('article') or
+                       soup.find_all('div', class_='post'))
+            
+            print(f"Found {len(articles)} Crunchbase articles")
             
             for article in articles[:20]:  # Limit to recent articles
-                title_elem = article.find('h2') or article.find('h3')
+                title_elem = article.find('h2') or article.find('h3') or article.find('h1')
                 if not title_elem:
                     continue
                     
                 title = title_elem.get_text(strip=True)
+                if not title:
+                    continue
+                    
                 link_elem = title_elem.find('a')
-                link = link_elem['href'] if link_elem else None
+                link = link_elem.get('href') if link_elem else None
                 
                 date_elem = article.find('time')
                 date = date_elem.get('datetime') if date_elem else None
@@ -88,6 +117,7 @@ class FundingScraper:
                     'date': date,
                     'scraped_at': datetime.now().isoformat()
                 })
+                print(f"Found Crunchbase article: {title[:50]}...")
                 
         except Exception as e:
             print(f"Error scraping Crunchbase: {e}")
@@ -100,18 +130,23 @@ class FundingScraper:
         
         try:
             response = self.session.get(url)
+            print(f"Tech Startups status: {response.status_code}")
             soup = BeautifulSoup(response.content, 'html.parser')
             
             articles = soup.find_all('article')
+            print(f"Found {len(articles)} Tech Startups articles")
             
             for article in articles[:15]:
-                title_elem = article.find('h2') or article.find('h3')
+                title_elem = article.find('h2') or article.find('h3') or article.find('h1')
                 if not title_elem:
                     continue
                     
                 title = title_elem.get_text(strip=True)
+                if not title:
+                    continue
+                    
                 link_elem = title_elem.find('a')
-                link = link_elem['href'] if link_elem else None
+                link = link_elem.get('href') if link_elem else None
                 
                 date_elem = article.find('time')
                 date = date_elem.get('datetime') if date_elem else None
@@ -123,6 +158,7 @@ class FundingScraper:
                     'date': date,
                     'scraped_at': datetime.now().isoformat()
                 })
+                print(f"Found Tech Startups article: {title[:50]}...")
                 
         except Exception as e:
             print(f"Error scraping Tech Startups: {e}")
