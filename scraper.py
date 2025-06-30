@@ -33,17 +33,17 @@ class FundingScraper:
                     response = page.goto(url, wait_until='networkidle')
                     print(f"TechCrunch page {page_num} status: {response.status}")
                     
-                    # Wait for content to load
-                    page.wait_for_selector('article, .post-block', timeout=10000)
+                    # Wait a bit for content to load
+                    page.wait_for_timeout(3000)
                     
                     # Get page content
                     content = page.content()
                     soup = BeautifulSoup(content, 'html.parser')
                     
-                    # Try multiple selectors for articles
-                    articles = (soup.find_all('article') or 
-                               soup.find_all('div', class_='post-block') or
-                               soup.find_all('li'))
+                    # Try multiple selectors for articles based on TechCrunch structure
+                    articles = (soup.find_all('li') or 
+                               soup.find_all('article') or
+                               soup.find_all('div', class_='post-block'))
                     
                     print(f"Found {len(articles)} articles on page {page_num}")
                     
