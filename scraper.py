@@ -5,6 +5,7 @@ import time
 import json
 from datetime import datetime, timedelta
 import re
+from playwright.sync_api import sync_playwright
 
 class FundingScraper:
     def __init__(self):
@@ -13,65 +14,83 @@ class FundingScraper:
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         })
         self.funding_data = []
+        self.playwright = None
+        self.browser = None
     
     def scrape_techcrunch_funding(self, pages=5):
-        """Scrape TechCrunch funding news"""
+        """Scrape TechCrunch funding news using Playwright"""
         print("Scraping TechCrunch funding news...")
         
-        for page in range(1, pages + 1):
-            url = f"https://techcrunch.com/category/fundraising/page/{page}/"
-            print(f"Scraping URL: {url}")
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            page = browser.new_page()
             
-            try:
-                response = self.session.get(url)
-                print(f"TechCrunch page {page} status: {response.status_code}")
-                soup = BeautifulSoup(response.content, 'html.parser')
+            for page_num in range(1, pages + 1):
+                url = f"https://techcrunch.com/category/fundraising/page/{page_num}/"
+                print(f"Scraping URL: {url}")
                 
-                # Try multiple selectors for articles
-                articles = (soup.find_all('article', class_='post-block') or 
-                           soup.find_all('article') or
-                           soup.find_all('div', class_='post-block'))
-                
-                print(f"Found {len(articles)} articles on page {page}")
-                
-                for article in articles:
-                    # Try multiple selectors for title
-                    title_elem = (article.find('h2', class_='post-block__title') or
-                                 article.find('h2') or
-                                 article.find('h3') or
-                                 article.find('a'))
+                try:
+                    response = page.goto(url, wait_until='networkidle')
+                    print(f"TechCrunch page {page_num} status: {response.status}")
                     
-                    if not title_elem:
-                        continue
+                    # Wait for content to load
+                    page.wait_for_selector('article, .post-block', timeout=10000)
+                    
+                    # Get page content
+                    content = page.content()
+                    soup = BeautifulSoup(content, 'html.parser')
+                    
+                    # Try multiple selectors for articles
+                    articles = (soup.find_all('article') or 
+                               soup.find_all('div', class_='post-block') or
+                               soup.find_all('li'))
+                    
+                    print(f"Found {len(articles)} articles on page {page_num}")
+                    
+                    for article in articles:
+                        # Try multiple selectors for title
+                        title_elem = (article.find('h3') or
+                                     article.find('h2') or
+                                     article.find('h1') or
+                                     article.find('a'))
                         
-                    title = title_elem.get_text(strip=True)
-                    if not title:
-                        continue
+                        if not title_elem:
+                            continue
+                            
+                        title = title_elem.get_text(strip=True)
+                        if not title or len(title) < 10:  # Skip very short titles
+                            continue
+                            
+                        link = None
+                        if title_elem.name == 'a':
+                            link = title_elem.get('href')
+                        else:
+                            link_elem = title_elem.find('a')
+                            link = link_elem.get('href') if link_elem else None
                         
-                    link = None
-                    if title_elem.name == 'a':
-                        link = title_elem.get('href')
-                    else:
-                        link_elem = title_elem.find('a')
-                        link = link_elem.get('href') if link_elem else None
+                        # Make sure link is absolute
+                        if link and link.startswith('/'):
+                            link = f"https://techcrunch.com{link}"
+                        
+                        # All articles in fundraising category are funding-related
+                        date_elem = article.find('time')
+                        date = date_elem.get('datetime') if date_elem else None
+                        
+                        self.funding_data.append({
+                            'source': 'TechCrunch',
+                            'title': title,
+                            'url': link,
+                            'date': date,
+                            'scraped_at': datetime.now().isoformat()
+                        })
+                        print(f"Found funding article: {title[:50]}...")
                     
-                    # All articles in fundraising category are funding-related
-                    date_elem = article.find('time')
-                    date = date_elem.get('datetime') if date_elem else None
+                    time.sleep(2)  # Be respectful to the server
                     
-                    self.funding_data.append({
-                        'source': 'TechCrunch',
-                        'title': title,
-                        'url': link,
-                        'date': date,
-                        'scraped_at': datetime.now().isoformat()
-                    })
-                    print(f"Found funding article: {title[:50]}...")
-                
-                time.sleep(2)  # Be respectful to the server
-                
-            except Exception as e:
-                print(f"Error scraping TechCrunch page {page}: {e}")
+                except Exception as e:
+                    print(f"Error scraping TechCrunch page {page_num}: {e}")
+            
+            browser.close()
     
     def scrape_crunchbase_news(self):
         """Scrape Crunchbase news (requires API key for full access)"""
