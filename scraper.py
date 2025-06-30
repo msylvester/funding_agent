@@ -220,8 +220,12 @@ class FundingScraper:
         self.save_to_json()
         
         # Show recent funding summary
-        recent_funding = df[df['is_recent'] == True]
-        print(f"\nFound {len(recent_funding)} recent funding announcements")
+        if not df.empty and 'is_recent' in df.columns:
+            recent_funding = df[df['is_recent'] == True]
+            print(f"\nFound {len(recent_funding)} recent funding announcements")
+        else:
+            print("\nNo funding data found to analyze")
+            recent_funding = pd.DataFrame()
         
         return df
 
@@ -233,7 +237,10 @@ if __name__ == "__main__":
     funding_df = scraper.run_scraper()
     
     # Display recent funding
-    recent_funding = funding_df[funding_df['is_recent'] == True]
-    print("\nRecent Funding Announcements:")
-    for _, row in recent_funding.iterrows():
-        print(f"- {row['company_name']}: {row['funding_amount']} ({row['source']})")
+    if not funding_df.empty and 'is_recent' in funding_df.columns:
+        recent_funding = funding_df[funding_df['is_recent'] == True]
+        print("\nRecent Funding Announcements:")
+        for _, row in recent_funding.iterrows():
+            print(f"- {row['company_name']}: {row['funding_amount']} ({row['source']})")
+    else:
+        print("\nNo recent funding announcements found")
