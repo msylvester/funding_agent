@@ -181,14 +181,7 @@ class FundingRAGAgent:
         return stats
 
 def main():
-    st.set_page_config(
-        page_title="Funding Data RAG Agent",
-        page_icon="💰",
-        layout="wide"
-    )
-    
-    st.title("💰 Funding Data RAG Agent")
-    st.markdown("Ask questions about startup funding and investment news!")
+    st.title("Funding Data RAG Agent")
     
     # Initialize the RAG agent
     if 'rag_agent' not in st.session_state:
@@ -197,87 +190,31 @@ def main():
     
     agent = st.session_state.rag_agent
     
-    # Sidebar with statistics
-    with st.sidebar:
-        st.header("📊 Data Statistics")
-        stats = agent.get_stats()
+    # Initialize session state for form submission if not exists
+    if 'last_submitted' not in st.session_state:
+        st.session_state.last_submitted = ""
+    
+    # Create a form for more reliable input handling
+    with st.form(key="input_form", clear_on_submit=True):
+        user_input = st.text_input("Ask about funding data", key="user_input_field")
+        submit_button = st.form_submit_button("Submit")
         
-        if stats:
-            st.metric("Total Articles", stats.get('total_articles', 0))
-            st.metric("Companies with Funding", stats.get('companies_with_funding', 0))
-            st.metric("Recent Articles", stats.get('recent_articles', 0))
-            
-            st.subheader("Sources")
-            for source, count in stats.get('sources', {}).items():
-                st.write(f"• {source}: {count}")
+        if submit_button and user_input:
+            # Store the input in session state to process after form submission
+            st.session_state.last_submitted = user_input
+    
+    # Process the submission outside the form
+    if st.session_state.last_submitted:
+        current_input = st.session_state.last_submitted
         
-        st.markdown("---")
-        st.markdown("### Sample Questions")
-        st.markdown("""
-        - What are the recent funding announcements?
-        - Which companies raised the most money?
-        - Tell me about Tailor's funding
-        - What funding news is from TechCrunch?
-        - Show me Series A funding rounds
-        """)
-    
-    # Main chat interface
-    st.header("🤖 Chat with the Agent")
-    
-    # Initialize chat history
-    if 'messages' not in st.session_state:
-        st.session_state.messages = [
-            {"role": "assistant", "content": "Hello! I'm your funding data assistant. Ask me anything about startup funding and investment news!"}
-        ]
-    
-    # Display chat history
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
-    
-    # Chat input
-    if prompt := st.chat_input("Ask about funding data..."):
-        # Add user message to chat history
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.chat_message("user"):
-            st.markdown(prompt)
+        # Get response from agent
+        response = agent.generate_response(current_input)
         
-        # Generate response
-        with st.chat_message("assistant"):
-            with st.spinner("Searching funding data..."):
-                response = agent.generate_response(prompt)
-            st.markdown(response)
+        # Display the response
+        st.success(response)
         
-        # Add assistant response to chat history
-        st.session_state.messages.append({"role": "assistant", "content": response})
-    
-    # Data exploration section
-    st.header("📈 Data Exploration")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.subheader("Recent Funding Articles")
-        if not agent.data.empty:
-            recent_data = agent.data.head(10)
-            for _, row in recent_data.iterrows():
-                with st.expander(f"{row.get('company_name', 'Unknown')} - {row.get('funding_amount', 'N/A')}"):
-                    st.write(f"**Title:** {row.get('title', 'N/A')}")
-                    st.write(f"**Source:** {row.get('source', 'N/A')}")
-                    st.write(f"**Date:** {row.get('date', 'N/A')}")
-                    if row.get('url'):
-                        st.write(f"**URL:** {row.get('url')}")
-    
-    with col2:
-        st.subheader("Funding Amounts")
-        if not agent.data.empty:
-            funding_data = agent.data[agent.data['funding_amount'].notna()]
-            if not funding_data.empty:
-                st.write(f"Found {len(funding_data)} articles with funding amounts")
-                for _, row in funding_data.head(5).iterrows():
-                    st.write(f"• **{row.get('company_name', 'Unknown')}**: {row.get('funding_amount', 'N/A')}")
-            else:
-                st.write("No funding amounts found in the data")
+        # Clear the last submitted value to prevent re-processing
+        st.session_state.last_submitted = ""
 
 if __name__ == "__main__":
     main()
