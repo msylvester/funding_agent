@@ -18,7 +18,7 @@ class FundingScraper:
         self.browser = None
     
     def scrape_techcrunch_funding(self, pages=5):
-        """Scrape TechCrunch funding news using Playwright"""
+        """Improved TechCrunch scraping with better content filtering"""
         print("Scraping TechCrunch funding news...")
         
         with sync_playwright() as p:
@@ -40,27 +40,42 @@ class FundingScraper:
                     content = page.content()
                     soup = BeautifulSoup(content, 'html.parser')
                     
-                    # Try multiple selectors for articles based on TechCrunch structure
-                    articles = (soup.find_all('li') or 
-                               soup.find_all('article') or
-                               soup.find_all('div', class_='post-block'))
+                    # More specific selectors for actual articles
+                    articles = soup.find_all('article') or soup.find_all('div', class_='post-block')
                     
                     print(f"Found {len(articles)} articles on page {page_num}")
                     
                     for article in articles:
-                        # Try multiple selectors for title
-                        title_elem = (article.find('h3') or
+                        # Get title with better selectors
+                        title_elem = (article.find('h2', class_='post-block__title') or
+                                     article.find('h3') or
                                      article.find('h2') or
-                                     article.find('h1') or
                                      article.find('a'))
                         
                         if not title_elem:
                             continue
                             
                         title = title_elem.get_text(strip=True)
-                        if not title or len(title) < 10:  # Skip very short titles
+                        
+                        # Skip if title is too short or generic
+                        if not title or len(title) < 20:
                             continue
-                            
+                        
+                        # Skip obvious non-funding content
+                        skip_keywords = ['newsletter', 'podcast', 'event', 'jobs', 'about', 'contact']
+                        if any(keyword in title.lower() for keyword in skip_keywords):
+                            continue
+                        
+                        # Get article content for better extraction
+                        content_elem = article.find('div', class_='post-block__content')
+                        article_content = content_elem.get_text(strip=True) if content_elem else ""
+                        
+                        # Extract funding details
+                        details = self.extract_funding_details(title, article_content)
+                        if not details:  # Skip if not funding-related
+                            continue
+                        
+                        # Get link
                         link = None
                         if title_elem.name == 'a':
                             link = title_elem.get('href')
@@ -72,7 +87,7 @@ class FundingScraper:
                         if link and link.startswith('/'):
                             link = f"https://techcrunch.com{link}"
                         
-                        # All articles in fundraising category are funding-related
+                        # Get date
                         date_elem = article.find('time')
                         date = date_elem.get('datetime') if date_elem else None
                         
@@ -81,9 +96,13 @@ class FundingScraper:
                             'title': title,
                             'url': link,
                             'date': date,
-                            'scraped_at': datetime.now().isoformat()
+                            'scraped_at': datetime.now().isoformat(),
+                            'company_name': details['company'],
+                            'funding_amount': details['amount'],
+                            'funder': details['funder'],
+                            'is_recent': self.is_recent_funding(date)
                         })
-                        print(f"Found funding article: {title[:50]}...")
+                        print(f"Found funding: {details['company']} - {details['amount']}")
                     
                     time.sleep(2)  # Be respectful to the server
                     
@@ -127,14 +146,27 @@ class FundingScraper:
                 date_elem = article.find('time')
                 date = date_elem.get('datetime') if date_elem else None
                 
+                # Get article content for better extraction
+                content_elem = article.find('div', class_='entry-content') or article.find('div', class_='content')
+                article_content = content_elem.get_text(strip=True) if content_elem else ""
+                
+                # Extract funding details
+                details = self.extract_funding_details(title, article_content)
+                if not details:  # Skip if not funding-related
+                    continue
+                
                 self.funding_data.append({
                     'source': 'Crunchbase News',
                     'title': title,
                     'url': link,
                     'date': date,
-                    'scraped_at': datetime.now().isoformat()
+                    'scraped_at': datetime.now().isoformat(),
+                    'company_name': details['company'],
+                    'funding_amount': details['amount'],
+                    'funder': details['funder'],
+                    'is_recent': self.is_recent_funding(date)
                 })
-                print(f"Found Crunchbase article: {title[:50]}...")
+                print(f"Found Crunchbase funding: {details['company']} - {details['amount']}")
                 
         except Exception as e:
             print(f"Error scraping Crunchbase: {e}")
@@ -169,63 +201,110 @@ class FundingScraper:
                 date_elem = article.find('time')
                 date = date_elem.get('datetime') if date_elem else None
                 
+                # Get article content for better extraction
+                content_elem = article.find('div', class_='entry-content') or article.find('div', class_='content')
+                article_content = content_elem.get_text(strip=True) if content_elem else ""
+                
+                # Extract funding details
+                details = self.extract_funding_details(title, article_content)
+                if not details:  # Skip if not funding-related
+                    continue
+                
                 self.funding_data.append({
                     'source': 'Tech Startups',
                     'title': title,
                     'url': link,
                     'date': date,
-                    'scraped_at': datetime.now().isoformat()
+                    'scraped_at': datetime.now().isoformat(),
+                    'company_name': details['company'],
+                    'funding_amount': details['amount'],
+                    'funder': details['funder'],
+                    'is_recent': self.is_recent_funding(date)
                 })
-                print(f"Found Tech Startups article: {title[:50]}...")
+                print(f"Found Tech Startups funding: {details['company']} - {details['amount']}")
                 
         except Exception as e:
             print(f"Error scraping Tech Startups: {e}")
     
-    def extract_funding_details(self, title):
-        """Extract funding amount and company name from title"""
-        # Regex patterns for common funding formats
+    def extract_funding_details(self, title, content=""):
+        """Extract funding amount, company name, and funder from title and content"""
+        # Better funding keywords to validate this is actually funding news
+        funding_keywords = [
+            'raises', 'raised', 'funding', 'investment', 'round', 'series',
+            'seed', 'venture', 'capital', 'million', 'billion', 'investors',
+            'led by', 'participated', 'valuation'
+        ]
+        
+        # Check if this is actually funding-related
+        text_to_check = f"{title} {content}".lower()
+        if not any(keyword in text_to_check for keyword in funding_keywords):
+            return None  # Not a funding article
+        
+        # Improved amount patterns
         amount_patterns = [
             r'\$(\d+(?:\.\d+)?)\s*(million|billion|M|B)',
             r'(\d+(?:\.\d+)?)\s*million',
-            r'(\d+(?:\.\d+)?)\s*billion'
+            r'(\d+(?:\.\d+)?)\s*billion',
+            r'raises\s+\$(\d+(?:\.\d+)?)\s*(million|billion|M|B)?',
+            r'raised\s+\$(\d+(?:\.\d+)?)\s*(million|billion|M|B)?'
         ]
         
         amount = None
         for pattern in amount_patterns:
             match = re.search(pattern, title, re.IGNORECASE)
             if match:
-                if len(match.groups()) == 2:
+                if len(match.groups()) >= 2 and match.group(2):
                     amount = f"${match.group(1)} {match.group(2)}"
                 else:
                     amount = f"${match.group(1)} million"
                 break
         
-        # Extract company name (usually at the beginning)
-        company_match = re.match(r'^([^,]+)', title)
-        company = company_match.group(1).strip() if company_match else None
+        # Extract company name (improved patterns)
+        company_patterns = [
+            r'^([^,]+?)\s+raises',
+            r'^([^,]+?)\s+raised',
+            r'^([A-Za-z0-9\s&.-]+?)\s+(?:raises|raised|gets|secures)',
+            r'^([^,]+)'
+        ]
+        
+        company = None
+        for pattern in company_patterns:
+            match = re.search(pattern, title, re.IGNORECASE)
+            if match:
+                company = match.group(1).strip()
+                # Clean up common prefixes
+                company = re.sub(r'^(startup|company)\s+', '', company, flags=re.IGNORECASE)
+                break
+        
+        # Extract funder/investor information
+        funder_patterns = [
+            r'led by ([^,]+)',
+            r'from ([^,]+)',
+            r'investors? include ([^,]+)',
+            r'backed by ([^,]+)',
+            r'funding from ([^,]+)'
+        ]
+        
+        funder = None
+        search_text = f"{title} {content}"
+        for pattern in funder_patterns:
+            match = re.search(pattern, search_text, re.IGNORECASE)
+            if match:
+                funder = match.group(1).strip()
+                break
         
         return {
             'company': company,
-            'amount': amount
+            'amount': amount,
+            'funder': funder
         }
     
     def process_funding_data(self):
         """Process and enrich the scraped data"""
         print("Processing funding data...")
         
-        processed_data = []
-        for item in self.funding_data:
-            details = self.extract_funding_details(item['title'])
-            
-            processed_item = {
-                **item,
-                'company_name': details['company'],
-                'funding_amount': details['amount'],
-                'is_recent': self.is_recent_funding(item['date'])
-            }
-            processed_data.append(processed_item)
-        
-        return processed_data
+        # Data is already processed during scraping, just return it
+        return self.funding_data
     
     def is_recent_funding(self, date_str, days=7):
         """Check if funding is within specified days"""
