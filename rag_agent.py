@@ -9,24 +9,21 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 class FundingRAGAgent:
-    def __init__(self, data_source='funding_data.csv'):
-        self.data = self.load_data(data_source)
+    def __init__(self):
+        self.data = self.load_data()
         self.vectorizer = TfidfVectorizer(stop_words='english', max_features=1000)
         self.document_vectors = None
         self.documents = []
         self.setup_rag()
     
-    def load_data(self, data_source):
-        """Load funding data from CSV or JSON"""
+    def load_data(self):
+        """Load funding data from funding_data.json"""
         try:
-            if data_source.endswith('.csv'):
-                return pd.read_csv(data_source)
-            elif data_source.endswith('.json'):
-                with open(data_source, 'r') as f:
-                    data = json.load(f)
-                return pd.DataFrame(data)
+            with open('funding_data.json', 'r') as f:
+                data = json.load(f)
+            return pd.DataFrame(data)
         except Exception as e:
-            st.error(f"Error loading data: {e}")
+            st.error(f"Error loading funding_data.json: {e}")
             return pd.DataFrame()
     
     def setup_rag(self):
@@ -185,8 +182,8 @@ def main():
     
     # Initialize the RAG agent
     if 'rag_agent' not in st.session_state:
-        with st.spinner("Loading funding data..."):
-            st.session_state.rag_agent = FundingRAGAgent('funding_data.csv')
+        with st.spinner("Loading funding data from funding_data.json..."):
+            st.session_state.rag_agent = FundingRAGAgent()
     
     agent = st.session_state.rag_agent
     
