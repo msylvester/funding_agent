@@ -17,106 +17,119 @@ class FundingScraper:
         self.playwright = None
         self.browser = None
     
-    def scrape_techcrunch_funding(self, pages=5):
-        """Improved TechCrunch scraping with better content filtering"""
+    def scrape_techcrunch_funding(self, load_more_clicks=3):
+        """Improved TechCrunch scraping with better content filtering and dynamic loading"""
         print("Scraping TechCrunch funding news...")
         
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=True)
             page = browser.new_page()
             
-            for page_num in range(1, pages + 1):
-                url = f"https://techcrunch.com/category/fundraising/page/{page_num}/"
-                print(f"Scraping URL: {url}")
+            url = "https://techcrunch.com/category/fundraising/"
+            print(f"Scraping URL: {url}")
+            
+            try:
+                response = page.goto(url, wait_until='networkidle')
+                print(f"TechCrunch status: {response.status}")
                 
-                try:
-                    response = page.goto(url, wait_until='networkidle')
-                    print(f"TechCrunch page {page_num} status: {response.status}")
-                    
-                    # Wait a bit for content to load
-                    page.wait_for_timeout(3000)
-                    
-                    # Get page content
-                    content = page.content()
-                    soup = BeautifulSoup(content, 'html.parser')
-                    
-                    # More specific selectors for actual articles
-                    articles = soup.find_all('article') or soup.find_all('div', class_='post-block')
-                    
-                    print(f"Found {len(articles)} articles on page {page_num}")
-                    
-                    for article in articles:
-                        # Get title with better selectors
-                        title_elem = (article.find('h2', class_='post-block__title') or
-                                     article.find('h3') or
-                                     article.find('h2') or
-                                     article.find('a'))
-                        
-                        if not title_elem:
-                            continue
-                            
-                        title = title_elem.get_text(strip=True)
-                        
-                        # Skip if title is too short or generic
-                        if not title or len(title) < 20:
-                            continue
-                        
-                        # Skip obvious non-funding content
-                        skip_keywords = ['newsletter', 'podcast', 'event', 'jobs', 'about', 'contact']
-                        if any(keyword in title.lower() for keyword in skip_keywords):
-                            continue
-                        
-                        # Get article content for better extraction
-                        content_elem = article.find('div', class_='post-block__content')
-                        article_content = content_elem.get_text(strip=True) if content_elem else ""
-                        
-                        # Extract funding details
-                        details = self.extract_funding_details(title, article_content)
-                        if not details:  # Skip if not funding-related
-                            continue
-                        
-                        # Get link
-                        link = None
-                        if title_elem.name == 'a':
-                            link = title_elem.get('href')
+                # Wait for initial content to load
+                page.wait_for_timeout(3000)
+                
+                # Try to click "Load More" button multiple times to get more articles
+                for i in range(load_more_clicks):
+                    try:
+                        load_more_button = page.locator('text="Load More"').first
+                        if load_more_button.is_visible():
+                            load_more_button.click()
+                            page.wait_for_timeout(2000)  # Wait for new content to load
+                            print(f"Clicked Load More button {i+1} times")
                         else:
-                            link_elem = title_elem.find('a')
-                            link = link_elem.get('href') if link_elem else None
-                        
-                        # Make sure link is absolute
-                        if link and link.startswith('/'):
-                            link = f"https://techcrunch.com{link}"
-                        
-                        # Get date
-                        date_elem = article.find('time')
-                        date = date_elem.get('datetime') if date_elem else None
-                        
-                        self.funding_data.append({
-                            'source': 'TechCrunch',
-                            'title': title,
-                            'url': link,
-                            'date': date,
-                            'scraped_at': datetime.now().isoformat(),
-                            'company_name': details['company'],
-                            'funding_amount': details['amount'],
-                            'funder': details['funder'],
-                            'is_recent': self.is_recent_funding(date)
-                        })
-                        print(f"Found funding: {details['company']} - {details['amount']}")
+                            print("Load More button not found or not visible")
+                            break
+                    except Exception as e:
+                        print(f"Error clicking Load More: {e}")
+                        break
+                
+                # Get page content after loading more articles
+                content = page.content()
+                soup = BeautifulSoup(content, 'html.parser')
+                
+                # Find articles with more specific selectors
+                articles = soup.find_all('article') or soup.find_all('div', class_='post-block')
+                
+                print(f"Found {len(articles)} total articles")
+                
+                relevant_articles = 0
+                for article in articles:
+                    # Get title with better selectors
+                    title_elem = (article.find('h2', class_='post-block__title') or
+                                 article.find('h3') or
+                                 article.find('h2') or
+                                 article.find('a'))
                     
-                    time.sleep(2)  # Be respectful to the server
+                    if not title_elem:
+                        continue
+                        
+                    title = title_elem.get_text(strip=True)
                     
-                except Exception as e:
-                    print(f"Error scraping TechCrunch page {page_num}: {e}")
+                    # Skip if title is too short
+                    if not title or len(title) < 20:
+                        continue
+                    
+                    # Apply relevance filtering
+                    if not self.is_relevant_funding_article(title):
+                        continue
+                    
+                    # Get article content for better extraction
+                    content_elem = article.find('div', class_='post-block__content')
+                    article_content = content_elem.get_text(strip=True) if content_elem else ""
+                    
+                    # Extract funding details
+                    details = self.extract_funding_details(title, article_content)
+                    if not details or not details['company'] or not details['amount']:
+                        continue
+                    
+                    # Get link
+                    link = None
+                    if title_elem.name == 'a':
+                        link = title_elem.get('href')
+                    else:
+                        link_elem = title_elem.find('a')
+                        link = link_elem.get('href') if link_elem else None
+                    
+                    # Make sure link is absolute
+                    if link and link.startswith('/'):
+                        link = f"https://techcrunch.com{link}"
+                    
+                    # Get date
+                    date_elem = article.find('time')
+                    date = date_elem.get('datetime') if date_elem else None
+                    
+                    self.funding_data.append({
+                        'source': 'TechCrunch',
+                        'title': title,
+                        'url': link,
+                        'date': date,
+                        'scraped_at': datetime.now().isoformat(),
+                        'company_name': details['company'],
+                        'funding_amount': details['amount'],
+                        'funder': details['funder'],
+                        'is_recent': self.is_recent_funding(date)
+                    })
+                    relevant_articles += 1
+                    print(f"✓ Selected: {details['company']} - {details['amount']}")
+                
+                print(f"Selected {relevant_articles} relevant funding articles out of {len(articles)} total")
+                
+            except Exception as e:
+                print(f"Error scraping TechCrunch: {e}")
             
             browser.close()
     
     def scrape_crunchbase_news(self):
-        """Scrape Crunchbase news (requires API key for full access)"""
+        """Scrape Crunchbase news with improved filtering"""
         print("Scraping Crunchbase news...")
         
-        # Note: For full Crunchbase data, you'd need their API
-        # This is a simplified version for their public news
         url = "https://news.crunchbase.com/news-type/funding/"
         
         try:
@@ -124,20 +137,20 @@ class FundingScraper:
             print(f"Crunchbase status: {response.status_code}")
             soup = BeautifulSoup(response.content, 'html.parser')
             
-            # Try multiple selectors for articles
             articles = (soup.find_all('article', class_='post') or
                        soup.find_all('article') or
                        soup.find_all('div', class_='post'))
             
             print(f"Found {len(articles)} Crunchbase articles")
             
-            for article in articles[:20]:  # Limit to recent articles
+            relevant_articles = 0
+            for article in articles[:20]:
                 title_elem = article.find('h2') or article.find('h3') or article.find('h1')
                 if not title_elem:
                     continue
                     
                 title = title_elem.get_text(strip=True)
-                if not title:
+                if not title or not self.is_relevant_funding_article(title):
                     continue
                     
                 link_elem = title_elem.find('a')
@@ -146,13 +159,11 @@ class FundingScraper:
                 date_elem = article.find('time')
                 date = date_elem.get('datetime') if date_elem else None
                 
-                # Get article content for better extraction
                 content_elem = article.find('div', class_='entry-content') or article.find('div', class_='content')
                 article_content = content_elem.get_text(strip=True) if content_elem else ""
                 
-                # Extract funding details
                 details = self.extract_funding_details(title, article_content)
-                if not details:  # Skip if not funding-related
+                if not details or not details['company'] or not details['amount']:
                     continue
                 
                 self.funding_data.append({
@@ -166,13 +177,16 @@ class FundingScraper:
                     'funder': details['funder'],
                     'is_recent': self.is_recent_funding(date)
                 })
-                print(f"Found Crunchbase funding: {details['company']} - {details['amount']}")
+                relevant_articles += 1
+                print(f"✓ Selected Crunchbase: {details['company']} - {details['amount']}")
+            
+            print(f"Selected {relevant_articles} relevant Crunchbase articles")
                 
         except Exception as e:
             print(f"Error scraping Crunchbase: {e}")
     
     def scrape_tech_startups(self):
-        """Scrape Tech Startups funding news"""
+        """Scrape Tech Startups funding news with improved filtering"""
         print("Scraping Tech Startups...")
         
         url = "https://techstartups.com/category/funding/"
@@ -186,13 +200,14 @@ class FundingScraper:
             articles = soup.find_all('article')
             print(f"Found {len(articles)} Tech Startups articles")
             
+            relevant_articles = 0
             for article in articles[:15]:
                 title_elem = article.find('h2') or article.find('h3') or article.find('h1')
                 if not title_elem:
                     continue
                     
                 title = title_elem.get_text(strip=True)
-                if not title:
+                if not title or not self.is_relevant_funding_article(title):
                     continue
                     
                 link_elem = title_elem.find('a')
@@ -201,13 +216,11 @@ class FundingScraper:
                 date_elem = article.find('time')
                 date = date_elem.get('datetime') if date_elem else None
                 
-                # Get article content for better extraction
                 content_elem = article.find('div', class_='entry-content') or article.find('div', class_='content')
                 article_content = content_elem.get_text(strip=True) if content_elem else ""
                 
-                # Extract funding details
                 details = self.extract_funding_details(title, article_content)
-                if not details:  # Skip if not funding-related
+                if not details or not details['company'] or not details['amount']:
                     continue
                 
                 self.funding_data.append({
@@ -221,24 +234,62 @@ class FundingScraper:
                     'funder': details['funder'],
                     'is_recent': self.is_recent_funding(date)
                 })
-                print(f"Found Tech Startups funding: {details['company']} - {details['amount']}")
+                relevant_articles += 1
+                print(f"✓ Selected Tech Startups: {details['company']} - {details['amount']}")
+            
+            print(f"Selected {relevant_articles} relevant Tech Startups articles")
                 
         except Exception as e:
             print(f"Error scraping Tech Startups: {e}")
     
-    def extract_funding_details(self, title, content=""):
-        """Extract funding amount, company name, and funder from title and content"""
-        # Better funding keywords to validate this is actually funding news
-        funding_keywords = [
-            'raises', 'raised', 'funding', 'investment', 'round', 'series',
-            'seed', 'venture', 'capital', 'million', 'billion', 'investors',
-            'led by', 'participated', 'valuation'
+    def is_relevant_funding_article(self, title):
+        """Filter for relevant funding articles based on selection criteria"""
+        title_lower = title.lower()
+        
+        # Skip promotional/event articles
+        skip_keywords = [
+            'techcrunch all stage', 'techcrunch disrupt', 'event', 'conference',
+            'save up to', 'ticket', 'register', 'learn how', 'brings', 'shares',
+            'days until', 'kicks off', 'playbook', 'strategy', 'conversation',
+            'prep for', 'must-see', 'powerhouse', 'newsletter', 'podcast'
         ]
         
-        # Check if this is actually funding-related
-        text_to_check = f"{title} {content}".lower()
-        if not any(keyword in text_to_check for keyword in funding_keywords):
-            return None  # Not a funding article
+        if any(keyword in title_lower for keyword in skip_keywords):
+            return False
+        
+        # Skip spinoff/subsidiary articles
+        spinoff_keywords = ['spinoff', 'subsidiary', 'division']
+        if any(keyword in title_lower for keyword in spinoff_keywords):
+            return False
+        
+        # Skip rumor/talks articles
+        rumor_keywords = ['in talks', 'reportedly', 'rumored', 'allegedly', 'sources say']
+        if any(keyword in title_lower for keyword in rumor_keywords):
+            return False
+        
+        # Skip well-established mega companies (focus on startups)
+        mega_company_keywords = ['spacex', 'tesla', 'apple', 'google', 'microsoft', 'amazon', 'meta']
+        if any(keyword in title_lower for keyword in mega_company_keywords):
+            return False
+        
+        # Must contain funding indicators
+        funding_keywords = [
+            'raises', 'raised', 'funding', 'series a', 'series b', 'series c',
+            'seed', 'round', 'million', 'billion', 'investment', 'capital'
+        ]
+        
+        if not any(keyword in title_lower for keyword in funding_keywords):
+            return False
+        
+        # Must be completed funding (not just talks)
+        completed_keywords = ['raises', 'raised', 'secures', 'closes', 'gets']
+        if not any(keyword in title_lower for keyword in completed_keywords):
+            return False
+        
+        return True
+    
+    def extract_funding_details(self, title, content=""):
+        """Extract funding amount, company name, and funder from title and content"""
         
         # Improved amount patterns
         amount_patterns = [
@@ -337,8 +388,8 @@ class FundingScraper:
         """Run the complete scraping process"""
         print("Starting funding data scraper...")
         
-        # Scrape different sources
-        self.scrape_techcrunch_funding(pages=3)
+        # Scrape different sources with improved filtering
+        self.scrape_techcrunch_funding(load_more_clicks=3)
         time.sleep(3)
         
         self.scrape_crunchbase_news()
@@ -346,7 +397,7 @@ class FundingScraper:
         
         self.scrape_tech_startups()
         
-        print(f"Scraped {len(self.funding_data)} articles")
+        print(f"\nTotal relevant articles scraped: {len(self.funding_data)}")
         
         # Save data
         df = self.save_to_csv()
@@ -356,6 +407,11 @@ class FundingScraper:
         if not df.empty and 'is_recent' in df.columns:
             recent_funding = df[df['is_recent'] == True]
             print(f"\nFound {len(recent_funding)} recent funding announcements")
+            
+            # Show selected articles
+            print("\nSelected Funding Articles:")
+            for _, row in df.iterrows():
+                print(f"✓ {row['company_name']}: {row['funding_amount']} ({row['source']})")
         else:
             print("\nNo funding data found to analyze")
             recent_funding = pd.DataFrame()
@@ -369,11 +425,8 @@ if __name__ == "__main__":
     # Run the scraper
     funding_df = scraper.run_scraper()
     
-    # Display recent funding
-    if not funding_df.empty and 'is_recent' in funding_df.columns:
-        recent_funding = funding_df[funding_df['is_recent'] == True]
-        print("\nRecent Funding Announcements:")
-        for _, row in recent_funding.iterrows():
-            print(f"- {row['company_name']}: {row['funding_amount']} ({row['source']})")
+    # Display selected funding
+    if not funding_df.empty:
+        print(f"\nSuccessfully selected {len(funding_df)} relevant funding articles")
     else:
-        print("\nNo recent funding announcements found")
+        print("\nNo relevant funding announcements found")
