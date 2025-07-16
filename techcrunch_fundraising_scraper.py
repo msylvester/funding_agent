@@ -255,10 +255,7 @@ class TechCrunchFundraisingScaper:
             'total_funding': "Not specified",
             'investors': "Not specified",
             'description': "Not specified",
-            'is_recent': True,
-            'is_unicorn': False,
-            'unicorn_month': None,
-            'unicorn_year': None
+            'is_recent': True
         }
     
     def enhance_with_ai(self, title, content):
@@ -278,7 +275,6 @@ Extract structured funding information from this TechCrunch article. Return ONLY
     "total_funding": "total funding raised with unit or 'Not specified'",
     "investors": "comma-separated list of investors or 'Not specified'",
     "description": "brief company description or 'Not specified'",
-    "is_unicorn": true or false,
     "sector": "industry/sector or 'Not specified'"
 }}
 
