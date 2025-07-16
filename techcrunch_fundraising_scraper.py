@@ -5,7 +5,6 @@ import re
 from datetime import datetime
 import time
 from urllib.parse import urljoin, urlparse
-import logging
 import os
 
 class TechCrunchFundraisingScaper:
@@ -17,14 +16,10 @@ class TechCrunchFundraisingScaper:
         self.base_url = "https://techcrunch.com"
         self.funding_data = []
         
-        # Setup logging
-        logging.basicConfig(level=logging.INFO)
-        # self.logger = logging.getLogger(__name__)
-        
         # OpenRouter API setup
         self.openrouter_api_key = os.getenv('OPENROUTER_API_KEY')
         if not self.openrouter_api_key:
-            self.logger.warning("OPENROUTER_API_KEY not found in environment variables. AI enhancement will be disabled.")
+            print("OPENROUTER_API_KEY not found in environment variables. AI enhancement will be disabled.")
     
     def is_funding_article(self, title):
         """Check if article title indicates funding news"""
@@ -59,7 +54,7 @@ class TechCrunchFundraisingScaper:
                 articles = self.extract_articles_from_page(soup)
                 
                 if not articles:
-     
+                    print(f"No articles found on page {page}, stopping")
                     break
                 
                 # Process each article (limit to prevent getting stuck)
@@ -68,11 +63,11 @@ class TechCrunchFundraisingScaper:
                 
                 for article in articles:
                     if processed_count >= max_articles_per_page:
-        
+                        print(f"Reached max articles per page ({max_articles_per_page})")
                         break
                         
                     if self.is_funding_article(article['title']):
-                        # self.logger.info(f"Processing funding article: {article['title']}")
+                        print(f"Processing funding article: {article['title']}")
                         article_data = self.scrape_article_content(article['url'])
                         if article_data:
                             self.funding_data.append(article_data)
@@ -83,7 +78,7 @@ class TechCrunchFundraisingScaper:
                 time.sleep(2)  # Delay between pages
                 
             except Exception as e:
-                self.logger.error(f"Error scraping page {page}: {e}")
+                print(f"Error scraping page {page}: {e}")
                 break
     
     def extract_articles_from_page(self, soup):
@@ -119,16 +114,15 @@ class TechCrunchFundraisingScaper:
                 })
                 
             except Exception as e:
-                self.logger.debug(f"Error extracting article: {e}")
                 continue
         
-        self.logger.info(f"Found {len(articles)} articles on page")
+        print(f"Found {len(articles)} articles on page")
         return articles
     
     def scrape_article_content(self, url):
         """Scrape individual article content"""
         try:
-            self.logger.info(f"Scraping article: {url}")
+            print(f"Scraping article: {url}")
             response = self.session.get(url, timeout=10)
             response.raise_for_status()
             
@@ -193,11 +187,11 @@ class TechCrunchFundraisingScaper:
                 **funding_details
             }
             
-            # self.logger.info(f"Successfully scraped: {title}")
+            print(f"Successfully scraped: {title}")
             return article_data
             
         except Exception as e:
-            self.logger.error(f"Error scraping article {url}: {e}")
+            print(f"Error scraping article {url}: {e}")
             return None
     
     def extract_funding_details(self, title, content=""):
@@ -334,19 +328,19 @@ Return only the JSON object, no other text.
                         ai_response = ai_response.rsplit('\n', 1)[0]
                     
                     enhanced_data = json.loads(ai_response)
-                    # self.logger.info(f"Successfully enhanced data with AI for: {enhanced_data.get('company_name', 'Unknown')}")
+                    print(f"Successfully enhanced data with AI for: {enhanced_data.get('company_name', 'Unknown')}")
                     return enhanced_data
                     
                 except json.JSONDecodeError as e:
-                    self.logger.error(f"Failed to parse AI response as JSON: {e}")
-                    self.logger.debug(f"AI response was: {ai_response}")
+                    print(f"Failed to parse AI response as JSON: {e}")
+                    print(f"AI response was: {ai_response}")
                     return None
             else:
-                self.logger.error(f"OpenRouter API error: {response.status_code} - {response.text}")
+                print(f"OpenRouter API error: {response.status_code} - {response.text}")
                 return None
                 
         except Exception as e:
-            self.logger.error(f"Error calling OpenRouter API: {e}")
+            print(f"Error calling OpenRouter API: {e}")
             return None
     
     def save_to_json(self, filename='scraped_one.json'):
@@ -354,20 +348,20 @@ Return only the JSON object, no other text.
         try:
             with open(filename, 'w', encoding='utf-8') as f:
                 json.dump(self.funding_data, f, indent=2, ensure_ascii=False)
-            self.logger.info(f"Saved {len(self.funding_data)} articles to {filename}")
+            print(f"Saved {len(self.funding_data)} articles to {filename}")
         except Exception as e:
-            self.logger.error(f"Error saving to {filename}: {e}")
+            print(f"Error saving to {filename}: {e}")
     
     def run_scraper(self, max_pages=3):
         """Run the complete scraping process"""
-        self.logger.info("Starting TechCrunch fundraising scraper...")
+        print("Starting TechCrunch fundraising scraper...")
         self.scrape_fundraising_page(max_pages)
         
         if self.funding_data:
             self.save_to_json('scraped_one.json')
-            self.logger.info(f"Scraping completed. Found {len(self.funding_data)} funding articles.")
+            print(f"Scraping completed. Found {len(self.funding_data)} funding articles.")
         else:
-            self.logger.warning("No funding articles found.")
+            print("No funding articles found.")
         
         return self.funding_data
 
