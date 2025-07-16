@@ -194,11 +194,20 @@ def main():
     # Create a form for more reliable input handling
     with st.form(key="input_form", clear_on_submit=True):
         user_input = st.text_input("Ask about funding data", key="user_input_field")
-        submit_button = st.form_submit_button("Submit")
+        
+        # Create columns for buttons
+        col1, col2 = st.columns([1, 1])
+        with col1:
+            submit_button = st.form_submit_button("Submit")
+        with col2:
+            ingest_button = st.form_submit_button("Ingest")
         
         if submit_button and user_input:
             # Store the input in session state to process after form submission
             st.session_state.last_submitted = user_input
+        
+        if ingest_button:
+            st.text_area("", value="dark tech", height=100, disabled=True)
     
     # Process the submission outside the form
     if st.session_state.last_submitted:
