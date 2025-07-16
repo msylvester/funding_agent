@@ -280,18 +280,6 @@ class TechCrunchFundraisingScaper:
 def main():
     scraper = TechCrunchFundraisingScaper()
     data = scraper.run_scraper(max_pages=3)
-    
-    print(f"\nScraping Summary:")
-    print(f"Total articles scraped: {len(data)}")
-    
-    if data:
-        print("\nSample articles:")
-        for i, article in enumerate(data[:3], 1):
-            print(f"{i}. {article['title']}")
-            print(f"   Company: {article['company_name']}")
-            print(f"   Funding: {article['funding_amount']}")
-            print(f"   URL: {article['url']}")
-            print()
 
 if __name__ == "__main__":
     main()
