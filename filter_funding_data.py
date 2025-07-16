@@ -2,16 +2,16 @@ import json
 import sys
 from pathlib import Path
 
-def has_company_and_valuation(item):
-    """Check if an item has both company_name and valuation specified"""
+def has_company_and_funding(item):
+    """Check if an item has both company_name and funding_amount specified"""
     company_name = item.get('company_name', 'Not specified')
-    valuation = item.get('valuation', 'Not specified')
+    funding_amount = item.get('funding_amount', 'Not specified')
     
     # Both fields must be present and not "Not specified"
     return (company_name != 'Not specified' and 
-            valuation != 'Not specified' and
+            funding_amount != 'Not specified' and
             company_name.strip() != '' and
-            valuation.strip() != '')
+            funding_amount.strip() != '')
 
 def filter_funding_data(input_file='scraped_one.json', output_file='final_scrape.json'):
     """Filter JSON data to only include items with company name and valuation"""
@@ -27,10 +27,10 @@ def filter_funding_data(input_file='scraped_one.json', output_file='final_scrape
         
         print(f"Loaded {len(data)} items from {input_file}")
         
-        # Filter items that have both company name and valuation
-        filtered_data = [item for item in data if has_company_and_valuation(item)]
+        # Filter items that have both company name and funding amount
+        filtered_data = [item for item in data if has_company_and_funding(item)]
         
-        print(f"Found {len(filtered_data)} items with both company name and valuation")
+        print(f"Found {len(filtered_data)} items with both company name and funding amount")
         
         # Write filtered data to output file
         with open(output_file, 'w', encoding='utf-8') as f:
@@ -43,9 +43,9 @@ def filter_funding_data(input_file='scraped_one.json', output_file='final_scrape
             print("\nFiltered companies:")
             for item in filtered_data:
                 company = item.get('company_name', 'Unknown')
-                valuation = item.get('valuation', 'Unknown')
                 funding = item.get('funding_amount', 'Unknown')
-                print(f"  - {company}: {valuation} valuation, {funding} funding")
+                valuation = item.get('valuation', 'Not specified')
+                print(f"  - {company}: {funding} funding, {valuation} valuation")
         
         return True
         
