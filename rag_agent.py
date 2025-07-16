@@ -207,7 +207,7 @@ def main():
             st.session_state.last_submitted = user_input
         
         if ingest_button:
-            st.text_area("", value="dark tech", height=100, disabled=True)
+            st.success("Ingest button clicked!")
     
     # Process the submission outside the form
     if st.session_state.last_submitted:
