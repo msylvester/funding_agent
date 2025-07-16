@@ -25,6 +25,15 @@ class TechCrunchFundraisingScaper:
         """Check if article title indicates funding news"""
         title_lower = title.lower()
         
+        # Exclude event/conference announcements and non-funding content
+        exclude_keywords = [
+            'disrupt', 'event', 'conference', 'agenda', 'winner', 'vote', 'session', 
+            'speaker', 'roundtable', 'breakout', 'awards', 'summit', 'meetup',
+            'interview', 'podcast', 'webinar', 'demo day', 'pitch', 'competition'
+        ]
+        if any(keyword in title_lower for keyword in exclude_keywords):
+            return False
+        
         # Check for dollar amounts
         dollar_pattern = r'\$\d+(?:\.\d+)?[kmb]?'
         if re.search(dollar_pattern, title_lower):
@@ -69,7 +78,7 @@ class TechCrunchFundraisingScaper:
                     if self.is_funding_article(article['title']):
                         # print(f"Processing funding article: {article['title']}")
                         article_data = self.scrape_article_content(article['url'])
-                        if article_data:
+                        if article_data and self.is_valid_funding_data(article_data):
                             self.funding_data.append(article_data)
                         processed_count += 1
                         time.sleep(1)  # Be respectful to the server
@@ -258,6 +267,20 @@ class TechCrunchFundraisingScaper:
             'is_recent': True
         }
     
+    def is_valid_funding_data(self, funding_details):
+        """Check if the extracted funding data represents a real funding event"""
+        # Must have at least company name and funding amount specified
+        has_company = funding_details.get('company_name', 'Not specified') != 'Not specified'
+        has_amount = funding_details.get('funding_amount', 'Not specified') != 'Not specified'
+        
+        # If AI enhancement provided data, check for key fields
+        if funding_details.get('sector') and funding_details.get('sector') != 'Not specified':
+            # AI provided data, be more lenient but still require company name
+            return has_company
+        
+        # For non-AI data, require both company and amount
+        return has_company and has_amount
+    
     def enhance_with_ai(self, title, content):
         """Use Haiku via OpenRouter to extract structured funding data"""
         if not self.openrouter_api_key:
@@ -282,7 +305,7 @@ Article Title: {title}
 
 Article Content: {content[:1500]}
 
-Return only the JSON object, no other text.
+Return only the JSON object, no other text. If this article is NOT about a company receiving funding, return {{"company_name": "Not specified"}}.
 """
 
             headers = {
