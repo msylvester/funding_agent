@@ -6,6 +6,7 @@ from datetime import datetime
 import time
 from urllib.parse import urljoin, urlparse
 import logging
+import os
 
 class TechCrunchFundraisingScaper:
     def __init__(self):
@@ -19,6 +20,11 @@ class TechCrunchFundraisingScaper:
         # Setup logging
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
+        
+        # OpenRouter API setup
+        self.openrouter_api_key = os.getenv('OPENROUTER_API_KEY')
+        if not self.openrouter_api_key:
+            self.logger.warning("OPENROUTER_API_KEY not found in environment variables. AI enhancement will be disabled.")
     
     def is_funding_article(self, title):
         """Check if article title indicates funding news"""
@@ -171,6 +177,12 @@ class TechCrunchFundraisingScaper:
             # Extract funding details
             funding_details = self.extract_funding_details(title, content)
             
+            # Enhance with AI if API key is available
+            if self.openrouter_api_key:
+                enhanced_details = self.enhance_with_ai(title, content[:2000])
+                if enhanced_details:
+                    funding_details.update(enhanced_details)
+            
             article_data = {
                 'source': 'TechCrunch Fundraising',
                 'title': title,
@@ -254,6 +266,89 @@ class TechCrunchFundraisingScaper:
             'unicorn_month': None,
             'unicorn_year': None
         }
+    
+    def enhance_with_ai(self, title, content):
+        """Use Haiku via OpenRouter to extract structured funding data"""
+        if not self.openrouter_api_key:
+            return None
+            
+        try:
+            prompt = f"""
+Extract structured funding information from this TechCrunch article. Return ONLY a valid JSON object with these exact fields:
+
+{{
+    "company_name": "exact company name",
+    "funding_amount": "amount with unit like $50M, $2.5B, or 'Not specified'",
+    "valuation": "valuation with unit like $500M, $1.2B, or 'Not specified'",
+    "series": "Series A, Series B, Seed, Pre-seed, or 'Not specified'",
+    "founded_year": "year as string like '2020' or 'Not specified'",
+    "total_funding": "total funding raised with unit or 'Not specified'",
+    "investors": "comma-separated list of investors or 'Not specified'",
+    "description": "brief company description or 'Not specified'",
+    "is_unicorn": true or false,
+    "sector": "industry/sector or 'Not specified'"
+}}
+
+Article Title: {title}
+
+Article Content: {content[:1500]}
+
+Return only the JSON object, no other text.
+"""
+
+            headers = {
+                'Authorization': f'Bearer {self.openrouter_api_key}',
+                'Content-Type': 'application/json',
+                'HTTP-Referer': 'https://github.com/your-repo',
+                'X-Title': 'TechCrunch Funding Scraper'
+            }
+            
+            data = {
+                'model': 'anthropic/claude-3-haiku',
+                'messages': [
+                    {
+                        'role': 'user',
+                        'content': prompt
+                    }
+                ],
+                'max_tokens': 500,
+                'temperature': 0.1
+            }
+            
+            response = requests.post(
+                'https://openrouter.ai/api/v1/chat/completions',
+                headers=headers,
+                json=data,
+                timeout=30
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                ai_response = result['choices'][0]['message']['content'].strip()
+                
+                # Try to parse the JSON response
+                try:
+                    # Remove any markdown code blocks if present
+                    if ai_response.startswith('```'):
+                        ai_response = ai_response.split('\n', 1)[1]
+                    if ai_response.endswith('```'):
+                        ai_response = ai_response.rsplit('\n', 1)[0]
+                    
+                    enhanced_data = json.loads(ai_response)
+                    self.logger.info(f"Successfully enhanced data with AI for: {enhanced_data.get('company_name', 'Unknown')}")
+                    return enhanced_data
+                    
+                except json.JSONDecodeError as e:
+                    self.logger.error(f"Failed to parse AI response as JSON: {e}")
+                    self.logger.debug(f"AI response was: {ai_response}")
+                    return None
+            else:
+                self.logger.error(f"OpenRouter API error: {response.status_code} - {response.text}")
+                return None
+                
+        except Exception as e:
+            self.logger.error(f"Error calling OpenRouter API: {e}")
+            return None
     
     def save_to_json(self, filename='scraped_one.json'):
         """Save scraped data to JSON file"""
