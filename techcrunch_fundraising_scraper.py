@@ -259,6 +259,7 @@ class TechCrunchFundraisingScaper:
         """Save scraped data to JSON file"""
         try:
             with open(filename, 'w', encoding='utf-8') as f:
+                print('about to write to JSON')
                 json.dump(self.funding_data, f, indent=2, ensure_ascii=False)
             self.logger.info(f"Saved {len(self.funding_data)} articles to {filename}")
         except Exception as e:
