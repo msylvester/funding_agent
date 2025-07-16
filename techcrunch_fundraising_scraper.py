@@ -67,7 +67,7 @@ class TechCrunchFundraisingScaper:
                         break
                         
                     if self.is_funding_article(article['title']):
-                        print(f"Processing funding article: {article['title']}")
+                        # print(f"Processing funding article: {article['title']}")
                         article_data = self.scrape_article_content(article['url'])
                         if article_data:
                             self.funding_data.append(article_data)
@@ -78,7 +78,7 @@ class TechCrunchFundraisingScaper:
                 time.sleep(2)  # Delay between pages
                 
             except Exception as e:
-                print(f"Error scraping page {page}: {e}")
+                # print(f"Error scraping page {page}: {e}")
                 break
     
     def extract_articles_from_page(self, soup):
@@ -122,7 +122,7 @@ class TechCrunchFundraisingScaper:
     def scrape_article_content(self, url):
         """Scrape individual article content"""
         try:
-            print(f"Scraping article: {url}")
+            # print(f"Scraping article: {url}")
             response = self.session.get(url, timeout=10)
             response.raise_for_status()
             
@@ -187,11 +187,11 @@ class TechCrunchFundraisingScaper:
                 **funding_details
             }
             
-            print(f"Successfully scraped: {title}")
+            # print(f"Successfully scraped: {title}")
             return article_data
             
         except Exception as e:
-            print(f"Error scraping article {url}: {e}")
+            # print(f"Error scraping article {url}: {e}")
             return None
     
     def extract_funding_details(self, title, content=""):
@@ -328,7 +328,7 @@ Return only the JSON object, no other text.
                         ai_response = ai_response.rsplit('\n', 1)[0]
                     
                     enhanced_data = json.loads(ai_response)
-                    print(f"Successfully enhanced data with AI for: {enhanced_data.get('company_name', 'Unknown')}")
+                    # print(f"Successfully enhanced data with AI for: {enhanced_data.get('company_name', 'Unknown')}")
                     return enhanced_data
                     
                 except json.JSONDecodeError as e:
@@ -354,14 +354,14 @@ Return only the JSON object, no other text.
     
     def run_scraper(self, max_pages=3):
         """Run the complete scraping process"""
-        print("Starting TechCrunch fundraising scraper...")
+        # print("Starting TechCrunch fundraising scraper...")
         self.scrape_fundraising_page(max_pages)
         
         if self.funding_data:
             self.save_to_json('scraped_one.json')
-            print(f"Scraping completed. Found {len(self.funding_data)} funding articles.")
-        else:
-            print("No funding articles found.")
+            # print(f"Scraping completed. Found {len(self.funding_data)} funding articles.")
+        # else:
+            # print("No funding articles found.")
         
         return self.funding_data
 
