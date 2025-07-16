@@ -56,13 +56,21 @@ class TechCrunchFundraisingScaper:
                     self.logger.info(f"No articles found on page {page}, stopping")
                     break
                 
-                # Process each article
+                # Process each article (limit to prevent getting stuck)
+                processed_count = 0
+                max_articles_per_page = 10
+                
                 for article in articles:
+                    if processed_count >= max_articles_per_page:
+                        self.logger.info(f"Reached max articles per page ({max_articles_per_page})")
+                        break
+                        
                     if self.is_funding_article(article['title']):
                         self.logger.info(f"Processing funding article: {article['title']}")
                         article_data = self.scrape_article_content(article['url'])
                         if article_data:
                             self.funding_data.append(article_data)
+                        processed_count += 1
                         time.sleep(1)  # Be respectful to the server
                 
                 page += 1
@@ -76,75 +84,87 @@ class TechCrunchFundraisingScaper:
         """Extract article links and titles from the page"""
         articles = []
         
-        # Look for article containers
-        article_elements = soup.find_all(['article', 'div'], class_=re.compile(r'post|article|entry'))
+        # TechCrunch specific selectors - look for article links
+        article_links = soup.find_all('a', href=re.compile(r'/\d{4}/\d{2}/\d{2}/'))
         
-        if not article_elements:
-            # Fallback: look for links that might be articles
-            article_elements = soup.find_all('a', href=re.compile(r'/\d{4}/\d{2}/\d{2}/'))
-        
-        for element in article_elements:
+        for link in article_links:
             try:
-                # Try to find the title and URL
-                title_element = element.find(['h1', 'h2', 'h3', 'h4'], class_=re.compile(r'title|headline'))
-                if not title_element:
-                    title_element = element.find('a')
+                title = link.get_text(strip=True)
+                url = link.get('href')
                 
-                if title_element:
-                    if title_element.name == 'a':
-                        title = title_element.get_text(strip=True)
-                        url = title_element.get('href')
-                    else:
-                        link = title_element.find('a')
-                        if link:
-                            title = link.get_text(strip=True)
-                            url = link.get('href')
-                        else:
-                            continue
-                    
-                    if url and title:
-                        # Make URL absolute
-                        if url.startswith('/'):
-                            url = urljoin(self.base_url, url)
-                        
-                        # Skip if not a TechCrunch article
-                        if 'techcrunch.com' not in url:
-                            continue
-                        
-                        articles.append({
-                            'title': title,
-                            'url': url
-                        })
+                if not title or not url:
+                    continue
+                
+                # Make URL absolute
+                if url.startswith('/'):
+                    url = urljoin(self.base_url, url)
+                
+                # Skip if not a TechCrunch article or if it's an event/non-article page
+                if 'techcrunch.com' not in url or '/events/' in url:
+                    continue
+                
+                # Skip duplicate titles
+                if any(article['title'] == title for article in articles):
+                    continue
+                
+                articles.append({
+                    'title': title,
+                    'url': url
+                })
+                
             except Exception as e:
                 self.logger.debug(f"Error extracting article: {e}")
                 continue
         
+        self.logger.info(f"Found {len(articles)} articles on page")
         return articles
     
     def scrape_article_content(self, url):
         """Scrape individual article content"""
         try:
-            response = self.session.get(url)
+            self.logger.info(f"Scraping article: {url}")
+            response = self.session.get(url, timeout=10)
             response.raise_for_status()
             
             soup = BeautifulSoup(response.content, 'html.parser')
             
-            # Extract title
-            title_element = soup.find(['h1', 'h2'], class_=re.compile(r'title|headline|entry-title'))
-            title = title_element.get_text(strip=True) if title_element else "N/A"
+            # Extract title - try multiple selectors
+            title = "N/A"
+            title_selectors = [
+                'h1.entry-title',
+                'h1[class*="title"]',
+                'h1',
+                '.entry-title',
+                '[class*="headline"]'
+            ]
             
-            # Extract content
-            content_element = soup.find(['div', 'section'], class_=re.compile(r'content|entry-content|article-content'))
+            for selector in title_selectors:
+                title_element = soup.select_one(selector)
+                if title_element:
+                    title = title_element.get_text(strip=True)
+                    break
+            
+            # Extract content - try multiple selectors
             content = ""
-            if content_element:
-                # Get text content, removing scripts and styles
-                for script in content_element(["script", "style"]):
-                    script.decompose()
-                content = content_element.get_text(strip=True)
+            content_selectors = [
+                '.entry-content',
+                '[class*="content"]',
+                '.article-content',
+                '.post-content'
+            ]
+            
+            for selector in content_selectors:
+                content_element = soup.select_one(selector)
+                if content_element:
+                    # Remove scripts and styles
+                    for script in content_element(["script", "style"]):
+                        script.decompose()
+                    content = content_element.get_text(strip=True)
+                    break
             
             # Extract date
-            date_element = soup.find('time') or soup.find(class_=re.compile(r'date|time'))
             date = ""
+            date_element = soup.find('time')
             if date_element:
                 date = date_element.get('datetime') or date_element.get_text(strip=True)
             
@@ -156,11 +176,12 @@ class TechCrunchFundraisingScaper:
                 'title': title,
                 'url': url,
                 'date': date,
-                'content': content[:1000],  # Limit content length
+                'content': content[:1000] if content else "",  # Limit content length
                 'scraped_at': datetime.now().isoformat(),
                 **funding_details
             }
             
+            self.logger.info(f"Successfully scraped: {title}")
             return article_data
             
         except Exception as e:
