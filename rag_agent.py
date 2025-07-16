@@ -7,6 +7,8 @@ from typing import List, Dict
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+from techcrunch_fundraising_scraper import TechCrunchFundraisingScaper
+from filter_funding_data import filter_funding_data
 
 class FundingRAGAgent:
     def __init__(self):
@@ -177,6 +179,96 @@ class FundingRAGAgent:
         
         return stats
 
+def run_ingest_process():
+    """Run the complete ingest process: scrape -> filter -> augment existing data"""
+    try:
+        # Step 1: Run the scraper
+        st.info("Step 1: Scraping TechCrunch funding data...")
+        scraper = TechCrunchFundraisingScaper()
+        scraped_data = scraper.run_scraper(max_pages=3)
+        
+        if not scraped_data:
+            st.warning("No data scraped from TechCrunch")
+            return False
+        
+        st.info(f"Scraped {len(scraped_data)} articles")
+        
+        # Step 2: Filter the scraped data
+        st.info("Step 2: Filtering scraped data...")
+        filter_success = filter_funding_data('scraped_one.json', 'final_scrape.json')
+        
+        if not filter_success:
+            st.error("Failed to filter scraped data")
+            return False
+        
+        # Step 3: Augment existing funding_data.json with filtered results
+        st.info("Step 3: Augmenting existing funding data...")
+        augment_success = augment_funding_data()
+        
+        if not augment_success:
+            st.error("Failed to augment funding data")
+            return False
+        
+        st.info("Ingest process completed successfully!")
+        return True
+        
+    except Exception as e:
+        st.error(f"Error during ingest process: {e}")
+        return False
+
+def augment_funding_data():
+    """Augment existing funding_data.json with new filtered data"""
+    try:
+        # Load existing funding data
+        existing_data = []
+        try:
+            with open('funding_data.json', 'r', encoding='utf-8') as f:
+                existing_data = json.load(f)
+        except FileNotFoundError:
+            st.info("No existing funding_data.json found, creating new file")
+        
+        # Load filtered new data
+        try:
+            with open('final_scrape.json', 'r', encoding='utf-8') as f:
+                new_data = json.load(f)
+        except FileNotFoundError:
+            st.error("final_scrape.json not found")
+            return False
+        
+        # Combine data, removing duplicates based on URL
+        seen_urls = set()
+        
+        # Add existing data URLs to seen set
+        for item in existing_data:
+            url = item.get('url', '')
+            if url:
+                seen_urls.add(url)
+        
+        # Add new data that doesn't already exist
+        new_items_added = 0
+        for item in new_data:
+            url = item.get('url', '')
+            if url and url not in seen_urls:
+                existing_data.append(item)
+                seen_urls.add(url)
+                new_items_added += 1
+            elif not url:  # Add items without URLs
+                existing_data.append(item)
+                new_items_added += 1
+        
+        # Save augmented data back to funding_data.json
+        with open('funding_data.json', 'w', encoding='utf-8') as f:
+            json.dump(existing_data, f, indent=2, ensure_ascii=False)
+        
+        st.info(f"Added {new_items_added} new items to funding_data.json")
+        st.info(f"Total items in dataset: {len(existing_data)}")
+        
+        return True
+        
+    except Exception as e:
+        st.error(f"Error augmenting funding data: {e}")
+        return False
+
 def main():
     st.title("Funding Data RAG Agent")
     
@@ -207,7 +299,15 @@ def main():
             st.session_state.last_submitted = user_input
         
         if ingest_button:
-            st.success("Ingest button clicked!")
+            with st.spinner("Running ingest process..."):
+                success = run_ingest_process()
+                if success:
+                    st.success("Ingest completed successfully! Data has been updated and re-embedded.")
+                    # Force re-initialization of the agent with new data
+                    st.session_state.rag_agent = FundingRAGAgent()
+                    st.rerun()
+                else:
+                    st.error("Ingest process failed. Please check the logs.")
     
     # Process the submission outside the form
     if st.session_state.last_submitted:
