@@ -234,7 +234,7 @@ class TechCrunchFundraisingScaper:
             'unicorn_year': None
         }
     
-    def save_to_json(self, filename='techcrunch_fundraising_data.json'):
+    def save_to_json(self, filename='scraped_one.json'):
         """Save scraped data to JSON file"""
         try:
             with open(filename, 'w', encoding='utf-8') as f:
@@ -249,7 +249,7 @@ class TechCrunchFundraisingScaper:
         self.scrape_fundraising_page(max_pages)
         
         if self.funding_data:
-            self.save_to_json()
+            self.save_to_json('scraped_one.json')
             self.logger.info(f"Scraping completed. Found {len(self.funding_data)} funding articles.")
         else:
             self.logger.warning("No funding articles found.")
