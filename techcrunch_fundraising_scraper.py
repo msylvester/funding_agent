@@ -271,7 +271,6 @@ class TechCrunchFundraisingScaper:
         """Use Haiku via OpenRouter to extract structured funding data"""
         if not self.openrouter_api_key:
             return None
-            
         try:
             prompt = f"""
 Extract structured funding information from this TechCrunch article. Return ONLY a valid JSON object with these exact fields:
@@ -354,7 +353,6 @@ Return only the JSON object, no other text.
         """Save scraped data to JSON file"""
         try:
             with open(filename, 'w', encoding='utf-8') as f:
-                print('about to write to JSON')
                 json.dump(self.funding_data, f, indent=2, ensure_ascii=False)
             self.logger.info(f"Saved {len(self.funding_data)} articles to {filename}")
         except Exception as e:
