@@ -195,12 +195,12 @@ def main():
     with st.form(key="input_form", clear_on_submit=True):
         user_input = st.text_input("Ask about funding data", key="user_input_field")
         
-        # Create columns for buttons
-        col1, col2 = st.columns([1, 1])
+        # Create columns for buttons with minimal gap
+        col1, col2, col3 = st.columns([2, 0.1, 2])
         with col1:
-            submit_button = st.form_submit_button("Submit")
-        with col2:
-            ingest_button = st.form_submit_button("Ingest")
+            submit_button = st.form_submit_button("Submit", use_container_width=True)
+        with col3:
+            ingest_button = st.form_submit_button("Ingest", use_container_width=True)
         
         if submit_button and user_input:
             # Store the input in session state to process after form submission
