@@ -78,8 +78,19 @@ class TechCrunchFundraisingScaper:
                     if self.is_funding_article(article['title']):
                         # print(f"Processing funding article: {article['title']}")
                         article_data = self.scrape_article_content(article['url'])
-                        if article_data and self.is_valid_funding_data(article_data):
-                            self.funding_data.append(article_data)
+                        
+                        if article_data:
+                            # Handle both single company and multi-company articles
+                            if isinstance(article_data, list):
+                                # Multiple companies found
+                                for single_article_data in article_data:
+                                    if self.is_valid_funding_data(single_article_data):
+                                        self.funding_data.append(single_article_data)
+                            else:
+                                # Single company article
+                                if self.is_valid_funding_data(article_data):
+                                    self.funding_data.append(article_data)
+                        
                         processed_count += 1
                         time.sleep(1)  # Be respectful to the server
                 
@@ -129,7 +140,7 @@ class TechCrunchFundraisingScaper:
         return articles
     
     def scrape_article_content(self, url):
-        """Scrape individual article content"""
+        """Scrape individual article content - now handles multiple companies"""
         try:
             # print(f"Scraping article: {url}")
             response = self.session.get(url, timeout=10)
@@ -177,27 +188,58 @@ class TechCrunchFundraisingScaper:
             if date_element:
                 date = date_element.get('datetime') or date_element.get_text(strip=True)
             
-            # Extract funding details
-            funding_details = self.extract_funding_details(title, content)
-            
-            # Enhance with AI if API key is available
+            # Check if article has multiple companies using AI
+            has_multiple_companies = False
             if self.openrouter_api_key:
-                enhanced_details = self.enhance_with_ai(title, content[:2000])
-                if enhanced_details:
-                    funding_details.update(enhanced_details)
+                has_multiple_companies = self.detect_multiple_companies_with_ai(title, content)
             
-            article_data = {
-                'source': 'TechCrunch Fundraising',
-                'title': title,
-                'url': url,
-                'date': date,
-                'content': content[:1000] if content else "",  # Limit content length
-                'scraped_at': datetime.now().isoformat(),
-                **funding_details
-            }
+            articles = []
             
-            # print(f"Successfully scraped: {title}")
-            return article_data
+            if has_multiple_companies:
+                # Extract multiple companies using AI
+                companies_data = self.extract_multiple_companies_with_ai(title, content)
+                
+                if companies_data:
+                    print(f"Found {len(companies_data)} companies in article: {title}")
+                    for company_details in companies_data:
+                        if company_details.get('company_name', 'Not specified') != 'Not specified':
+                            article_data = {
+                                'source': 'TechCrunch Fundraising',
+                                'title': title,
+                                'url': url,
+                                'date': date,
+                                'content': content[:1000] if content else "",
+                                'scraped_at': datetime.now().isoformat(),
+                                **company_details
+                            }
+                            articles.append(article_data)
+                else:
+                    # Fallback to single company extraction
+                    has_multiple_companies = False
+            
+            if not has_multiple_companies:
+                # Single company article - use existing logic
+                funding_details = self.extract_funding_details(title, content)
+                
+                # Enhance with AI if API key is available
+                if self.openrouter_api_key:
+                    enhanced_details = self.enhance_with_ai(title, content[:2000])
+                    if enhanced_details:
+                        funding_details.update(enhanced_details)
+                
+                article_data = {
+                    'source': 'TechCrunch Fundraising',
+                    'title': title,
+                    'url': url,
+                    'date': date,
+                    'content': content[:1000] if content else "",
+                    'scraped_at': datetime.now().isoformat(),
+                    **funding_details
+                }
+                articles.append(article_data)
+            
+            # print(f"Successfully scraped: {title} - {len(articles)} companies")
+            return articles if len(articles) > 1 else articles[0] if articles else None
             
         except Exception as e:
             # print(f"Error scraping article {url}: {e}")
@@ -281,6 +323,150 @@ class TechCrunchFundraisingScaper:
         # For non-AI data, require both company and amount
         return has_company and has_amount
     
+    def detect_multiple_companies_with_ai(self, title, content):
+        """Use AI to detect if article mentions multiple companies with funding"""
+        if not self.openrouter_api_key:
+            return False
+        
+        try:
+            prompt = f"""
+Analyze this TechCrunch article and determine if it mentions multiple companies that received funding.
+
+Return ONLY a JSON object with this format:
+{{
+    "multiple_companies": true/false,
+    "company_count": number_of_companies_with_funding
+}}
+
+Look for:
+- Articles that list multiple companies with funding amounts
+- Roundup articles about funding
+- Articles with titles like "every", "all", "startups that raised", etc.
+
+Article Title: {title}
+
+Article Content: {content[:2000]}
+
+Return only the JSON object, no other text.
+"""
+
+            headers = {
+                'Authorization': f'Bearer {self.openrouter_api_key}',
+                'Content-Type': 'application/json',
+                'HTTP-Referer': 'https://github.com/your-repo',
+                'X-Title': 'TechCrunch Funding Scraper'
+            }
+            
+            data = {
+                'model': 'anthropic/claude-3-haiku',
+                'messages': [{'role': 'user', 'content': prompt}],
+                'max_tokens': 200,
+                'temperature': 0.1
+            }
+            
+            response = requests.post(
+                'https://openrouter.ai/api/v1/chat/completions',
+                headers=headers,
+                json=data,
+                timeout=30
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                ai_response = result['choices'][0]['message']['content'].strip()
+                
+                try:
+                    if ai_response.startswith('```'):
+                        ai_response = ai_response.split('\n', 1)[1]
+                    if ai_response.endswith('```'):
+                        ai_response = ai_response.rsplit('\n', 1)[0]
+                    
+                    detection_result = json.loads(ai_response)
+                    return detection_result.get('multiple_companies', False)
+                    
+                except json.JSONDecodeError:
+                    return False
+            
+            return False
+                
+        except Exception as e:
+            print(f"Error detecting multiple companies: {e}")
+            return False
+
+    def extract_multiple_companies_with_ai(self, title, content):
+        """Use AI to extract multiple companies from an article"""
+        if not self.openrouter_api_key:
+            return []
+        
+        try:
+            prompt = f"""
+Extract ALL companies that received funding from this TechCrunch article. Return a JSON array where each company is an object with these fields:
+
+[
+    {{
+        "company_name": "exact company name",
+        "funding_amount": "amount with unit like $50M, $2.5B, or 'Not specified'",
+        "valuation": "valuation with unit like $500M, $1.2B, or 'Not specified'",
+        "series": "Series A, Series B, Seed, Pre-seed, or 'Not specified'",
+        "founded_year": "year as string like '2020' or 'Not specified'",
+        "total_funding": "total funding raised with unit or 'Not specified'",
+        "investors": "comma-separated list of investors or 'Not specified'",
+        "description": "brief company description or 'Not specified'",
+        "sector": "industry/sector or 'Not specified'"
+    }}
+]
+
+Article Title: {title}
+
+Article Content: {content[:3000]}
+
+Return only the JSON array, no other text. Include ALL companies mentioned that received funding.
+"""
+
+            headers = {
+                'Authorization': f'Bearer {self.openrouter_api_key}',
+                'Content-Type': 'application/json',
+                'HTTP-Referer': 'https://github.com/your-repo',
+                'X-Title': 'TechCrunch Funding Scraper'
+            }
+            
+            data = {
+                'model': 'anthropic/claude-3-haiku',
+                'messages': [{'role': 'user', 'content': prompt}],
+                'max_tokens': 1500,
+                'temperature': 0.1
+            }
+            
+            response = requests.post(
+                'https://openrouter.ai/api/v1/chat/completions',
+                headers=headers,
+                json=data,
+                timeout=30
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                ai_response = result['choices'][0]['message']['content'].strip()
+                
+                try:
+                    if ai_response.startswith('```'):
+                        ai_response = ai_response.split('\n', 1)[1]
+                    if ai_response.endswith('```'):
+                        ai_response = ai_response.rsplit('\n', 1)[0]
+                    
+                    companies_data = json.loads(ai_response)
+                    return companies_data if isinstance(companies_data, list) else []
+                    
+                except json.JSONDecodeError as e:
+                    print(f"Failed to parse multiple companies JSON: {e}")
+                    return []
+            
+            return []
+                
+        except Exception as e:
+            print(f"Error extracting multiple companies: {e}")
+            return []
+
     def enhance_with_ai(self, title, content):
         """Use Haiku via OpenRouter to extract structured funding data"""
         if not self.openrouter_api_key:
