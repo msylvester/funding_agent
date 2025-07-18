@@ -1,9 +1,9 @@
 import streamlit as st
 import pandas as pd
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 import re
-from typing import List, Dict
+from typing import List, Dict, Optional
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
@@ -16,6 +16,7 @@ class FundingRAGAgent:
         self.vectorizer = TfidfVectorizer(stop_words='english', max_features=1000)
         self.document_vectors = None
         self.documents = []
+        self.filtered_indices = None
         self.setup_rag()
     
     def load_data(self):
@@ -28,14 +29,20 @@ class FundingRAGAgent:
             st.error(f"Error loading funding_data.json: {e}")
             return pd.DataFrame()
     
-    def setup_rag(self):
-        """Setup RAG system by creating document vectors"""
+    def setup_rag(self, date_filter: Optional[Dict] = None):
+        """Setup RAG system by creating document vectors with optional date filtering"""
         if self.data.empty:
             return
         
+        # Apply date filtering if specified
+        filtered_data = self._apply_date_filter(self.data, date_filter) if date_filter else self.data
+        
+        # Store filtered indices for later use
+        self.filtered_indices = filtered_data.index.tolist()
+        
         # Create documents by combining relevant fields
         self.documents = []
-        for _, row in self.data.iterrows():
+        for _, row in filtered_data.iterrows():
             doc = f"""
             Company: {row.get('company_name', '')}
             Funding Amount: {row.get('funding_amount', '')}
@@ -67,10 +74,12 @@ class FundingRAGAgent:
         results = []
         for idx in top_indices:
             if similarities[idx] > 0.1:  # Minimum similarity threshold
+                # Map back to original data using filtered indices
+                original_idx = self.filtered_indices[idx] if self.filtered_indices else idx
                 results.append({
                     'document': self.documents[idx],
                     'similarity': similarities[idx],
-                    'data': self.data.iloc[idx].to_dict()
+                    'data': self.data.iloc[original_idx].to_dict()
                 })
         
         return results
@@ -164,6 +173,37 @@ class FundingRAGAgent:
             response += f"   - Funding: {amount}\n\n"
         
         return response
+    
+    def _apply_date_filter(self, data: pd.DataFrame, date_filter: Dict) -> pd.DataFrame:
+        """Apply date filtering to the dataset"""
+        if data.empty or 'date' not in data.columns:
+            return data
+        
+        filtered_data = data.copy()
+        
+        # Convert date column to datetime if it's not already
+        if not pd.api.types.is_datetime64_any_dtype(filtered_data['date']):
+            filtered_data['date'] = pd.to_datetime(filtered_data['date'], errors='coerce')
+        
+        # Apply date range filters
+        if 'start_date' in date_filter and date_filter['start_date']:
+            start_date = pd.to_datetime(date_filter['start_date'])
+            filtered_data = filtered_data[filtered_data['date'] >= start_date]
+        
+        if 'end_date' in date_filter and date_filter['end_date']:
+            end_date = pd.to_datetime(date_filter['end_date'])
+            filtered_data = filtered_data[filtered_data['date'] <= end_date]
+        
+        # Apply relative date filters (e.g., last N days)
+        if 'days_back' in date_filter and date_filter['days_back']:
+            cutoff_date = datetime.now() - timedelta(days=date_filter['days_back'])
+            filtered_data = filtered_data[filtered_data['date'] >= cutoff_date]
+        
+        return filtered_data
+    
+    def apply_date_filter(self, date_filter: Optional[Dict] = None):
+        """Apply date filter and rebuild the RAG system"""
+        self.setup_rag(date_filter)
     
     def get_stats(self) -> Dict:
         """Get statistics about the funding data"""
@@ -282,6 +322,53 @@ def main():
     # Initialize session state for form submission if not exists
     if 'last_submitted' not in st.session_state:
         st.session_state.last_submitted = ""
+    
+    # Date filtering sidebar
+    with st.sidebar:
+        st.header("Date Filters")
+        
+        filter_type = st.selectbox(
+            "Filter Type",
+            ["No Filter", "Date Range", "Last N Days"],
+            key="filter_type"
+        )
+        
+        date_filter = None
+        
+        if filter_type == "Date Range":
+            col1, col2 = st.columns(2)
+            with col1:
+                start_date = st.date_input("Start Date", key="start_date")
+            with col2:
+                end_date = st.date_input("End Date", key="end_date")
+            
+            if start_date and end_date:
+                date_filter = {
+                    'start_date': start_date,
+                    'end_date': end_date
+                }
+        
+        elif filter_type == "Last N Days":
+            days_back = st.number_input(
+                "Days Back", 
+                min_value=1, 
+                max_value=365, 
+                value=30,
+                key="days_back"
+            )
+            date_filter = {'days_back': days_back}
+        
+        # Apply filter button
+        if st.button("Apply Date Filter"):
+            with st.spinner("Applying date filter..."):
+                agent.apply_date_filter(date_filter)
+                st.success("Date filter applied!")
+        
+        # Reset filter button
+        if st.button("Reset Filter"):
+            with st.spinner("Resetting filter..."):
+                agent.apply_date_filter(None)
+                st.success("Filter reset!")
     
     # Create a form for more reliable input handling
     with st.form(key="input_form", clear_on_submit=True):
