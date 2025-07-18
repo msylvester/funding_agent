@@ -37,12 +37,12 @@ class FundingRAGAgent:
         self.documents = []
         for _, row in self.data.iterrows():
             doc = f"""
-            Title: {row.get('title', '')}
             Company: {row.get('company_name', '')}
             Funding Amount: {row.get('funding_amount', '')}
-            Source: {row.get('source', '')}
-            Date: {row.get('date', '')}
-            URL: {row.get('url', '')}
+            Valuation: {row.get('valuation', '')}
+            Series: {row.get('series', '')}
+            Total Funding: {row.get('total_funding', '')}
+            Investors: {row.get('investors', '')}
             """
             self.documents.append(doc.strip())
         
