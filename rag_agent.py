@@ -20,13 +20,13 @@ class FundingRAGAgent:
         self.setup_rag()
     
     def load_data(self):
-        """Load funding data from funding_data_complete.json"""
+        """Load funding data from funding_data.json"""
         try:
-            with open('funding_data_complete.json', 'r') as f:
+            with open('funding_data.json', 'r') as f:
                 data = json.load(f)
             return pd.DataFrame(data)
         except Exception as e:
-            st.error(f"Error loading funding_data_complete.json: {e}")
+            st.error(f"Error loading funding_data.json: {e}")
             return pd.DataFrame()
     
     def setup_rag(self, date_filter: Optional[Dict] = None):
@@ -426,7 +426,7 @@ def main():
     
     # Initialize the RAG agent
     if 'rag_agent' not in st.session_state:
-        with st.spinner("Loading funding data from funding_data_complete.json..."):
+        with st.spinner("Loading funding data from funding_data.json..."):
             st.session_state.rag_agent = FundingRAGAgent()
     
     agent = st.session_state.rag_agent
