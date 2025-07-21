@@ -20,13 +20,13 @@ class FundingRAGAgent:
         self.setup_rag()
     
     def load_data(self):
-        """Load funding data from funding_data.json"""
+        """Load funding data from funding_data_complete.json"""
         try:
-            with open('funding_data.json', 'r') as f:
+            with open('funding_data_complete.json', 'r') as f:
                 data = json.load(f)
             return pd.DataFrame(data)
         except Exception as e:
-            st.error(f"Error loading funding_data.json: {e}")
+            st.error(f"Error loading funding_data_complete.json: {e}")
             return pd.DataFrame()
     
     def setup_rag(self, date_filter: Optional[Dict] = None):
@@ -241,7 +241,7 @@ def run_ingest_process():
             st.error("Failed to filter scraped data")
             return False
         
-        # Step 3: Augment existing funding_data.json with filtered results
+        # Step 3: Augment existing funding_data_complete.json with filtered results
         st.info("Step 3: Augmenting existing funding data...")
         augment_success = augment_funding_data()
         
@@ -257,15 +257,15 @@ def run_ingest_process():
         return False
 
 def augment_funding_data():
-    """Augment existing funding_data.json with new filtered data"""
+    """Augment existing funding_data_complete.json with new filtered data"""
     try:
         # Load existing funding data
         existing_data = []
         try:
-            with open('funding_data.json', 'r', encoding='utf-8') as f:
+            with open('funding_data_complete.json', 'r', encoding='utf-8') as f:
                 existing_data = json.load(f)
         except FileNotFoundError:
-            st.info("No existing funding_data.json found, creating new file")
+            st.info("No existing funding_data_complete.json found, creating new file")
         
         # Load filtered new data
         try:
@@ -296,11 +296,11 @@ def augment_funding_data():
                 existing_data.append(item)
                 new_items_added += 1
         
-        # Save augmented data back to funding_data.json
-        with open('funding_data.json', 'w', encoding='utf-8') as f:
+        # Save augmented data back to funding_data_complete.json
+        with open('funding_data_complete.json', 'w', encoding='utf-8') as f:
             json.dump(existing_data, f, indent=2, ensure_ascii=False)
         
-        st.info(f"Added {new_items_added} new items to funding_data.json")
+        st.info(f"Added {new_items_added} new items to funding_data_complete.json")
         st.info(f"Total items in dataset: {len(existing_data)}")
         
         return True
@@ -310,11 +310,123 @@ def augment_funding_data():
         return False
 
 def main():
-    st.title("Funding Data RAG Agent")
+    # Apply custom CSS for better styling
+    st.markdown("""
+    <style>
+    /* Main container styling */
+    .main {
+        padding: 2rem;
+    }
+    
+    /* Title styling */
+    .main-title {
+        font-size: 3rem;
+        font-weight: 700;
+        background: linear-gradient(120deg, #1e3c72 0%, #2a5298 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-align: center;
+        margin-bottom: 0.5rem;
+    }
+    
+    /* Subtitle styling */
+    .subtitle {
+        text-align: center;
+        color: #666;
+        font-size: 1.2rem;
+        margin-bottom: 2rem;
+    }
+    
+    /* Form container */
+    .stForm {
+        background-color: #f7f9fc;
+        padding: 2rem;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    
+    /* Input field styling */
+    .stTextInput > div > div > input {
+        border-radius: 8px;
+        border: 2px solid #e1e4e8;
+        padding: 0.75rem 1rem;
+        font-size: 1.1rem;
+        transition: border-color 0.2s;
+    }
+    
+    .stTextInput > div > div > input:focus {
+        border-color: #2a5298;
+        box-shadow: 0 0 0 3px rgba(42, 82, 152, 0.1);
+    }
+    
+    /* Button styling */
+    .stButton > button {
+        background: linear-gradient(120deg, #1e3c72 0%, #2a5298 100%);
+        color: white;
+        border: none;
+        padding: 0.75rem 2rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 1rem;
+        transition: all 0.3s;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .stButton > button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+    
+    /* Success message styling */
+    .stSuccess {
+        background-color: #f0f9ff;
+        border-left: 4px solid #2a5298;
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin-top: 2rem;
+    }
+    
+    /* Spinner styling */
+    .stSpinner > div {
+        border-color: #2a5298;
+    }
+    
+    /* Example queries container */
+    .example-queries {
+        background-color: #f8f9fa;
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin: 1.5rem 0;
+        border: 1px solid #e9ecef;
+    }
+    
+    .example-title {
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 0.5rem;
+    }
+    
+    .example-item {
+        color: #2a5298;
+        cursor: pointer;
+        padding: 0.25rem 0;
+        transition: color 0.2s;
+    }
+    
+    .example-item:hover {
+        color: #1e3c72;
+        text-decoration: underline;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    # Enhanced title with gradient effect
+    st.markdown('<h1 class="main-title">💰 Funding Intelligence RAG</h1>', unsafe_allow_html=True)
+    st.markdown('<p class="subtitle">Explore the latest startup funding rounds with AI-powered insights</p>', unsafe_allow_html=True)
     
     # Initialize the RAG agent
     if 'rag_agent' not in st.session_state:
-        with st.spinner("Loading funding data from funding_data.json..."):
+        with st.spinner("Loading funding data from funding_data_complete.json..."):
             st.session_state.rag_agent = FundingRAGAgent()
     
     agent = st.session_state.rag_agent
@@ -323,41 +435,84 @@ def main():
     if 'last_submitted' not in st.session_state:
         st.session_state.last_submitted = ""
     
+    # Add example queries section
+    with st.expander("💡 Example Queries", expanded=False):
+        st.markdown("""
+        <div class="example-queries">
+            <div class="example-title">Try asking about:</div>
+            <ul style="margin: 0; padding-left: 1.5rem;">
+                <li class="example-item">Show me all Series A rounds from the last 30 days</li>
+                <li class="example-item">Which companies raised funding in AI or ML this month?</li>
+                <li class="example-item">What are the largest funding rounds in 2024?</li>
+                <li class="example-item">Show me fintech companies that raised money recently</li>
+                <li class="example-item">Which investors participated in recent Series B rounds?</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
+    
     # Create a form for more reliable input handling
     with st.form(key="input_form", clear_on_submit=True):
-        user_input = st.text_input("Ask about funding data", key="user_input_field")
+        user_input = st.text_input("🔍 Ask about funding data", 
+                                   placeholder="e.g., Show me all Series A rounds from the last 30 days",
+                                   key="user_input_field")
         
-        # Create columns for buttons with minimal gap
-        col1, col2, col3 = st.columns([2, 0.1, 2])
+        # Create columns for buttons with better spacing
+        col1, col2, col3 = st.columns([3, 0.5, 2])
         with col1:
-            submit_button = st.form_submit_button("Submit", use_container_width=True)
+            submit_button = st.form_submit_button("🚀 Search Funding Data", 
+                                                  use_container_width=True,
+                                                  type="primary")
         with col3:
-            ingest_button = st.form_submit_button("Ingest", use_container_width=True)
+            ingest_button = st.form_submit_button("🔄 Update Data", 
+                                                  use_container_width=True,
+                                                  help="Scrape latest funding data from TechCrunch")
         
         if submit_button and user_input:
             # Store the input in session state to process after form submission
             st.session_state.last_submitted = user_input
         
         if ingest_button:
-            with st.spinner("Running ingest process..."):
+            with st.spinner("🔄 Fetching latest funding data from TechCrunch..."):
                 success = run_ingest_process()
                 if success:
-                    st.success("Ingest completed successfully! Data has been updated and re-embedded.")
+                    st.success("✅ Data updated successfully! The latest funding rounds have been added to the database.")
                     # Force re-initialization of the agent with new data
                     st.session_state.rag_agent = FundingRAGAgent()
                     st.rerun()
                 else:
-                    st.error("Ingest process failed. Please check the logs.")
+                    st.error("❌ Update failed. Please check your internet connection and try again.")
     
     # Process the submission outside the form
     if st.session_state.last_submitted:
         current_input = st.session_state.last_submitted
         
-        # Get response from agent
-        response = agent.generate_response(current_input)
+        # Show loading animation while processing
+        with st.spinner("🤔 Analyzing funding data..."):
+            # Get response from agent
+            response = agent.generate_response(current_input)
         
-        # Display the response
-        st.success(response)
+        # Display the response with enhanced formatting
+        st.markdown("### 📊 Results")
+        
+        # Create a container for the response with custom styling
+        response_container = st.container()
+        with response_container:
+            # Check if response contains structured data (tables, lists)
+            if "Company:" in response or "- " in response:
+                # Display as info box for structured responses
+                st.info(response)
+            else:
+                # Display as success box for general responses
+                st.success(response)
+        
+        # Add a divider for visual separation
+        st.markdown("---")
+        
+        # Add helpful tips based on the query
+        if any(term in current_input.lower() for term in ["series a", "series b", "series c", "funding round"]):
+            st.caption("💡 Tip: You can filter by specific date ranges by mentioning timeframes like 'last 30 days' or 'this month'")
+        elif any(term in current_input.lower() for term in ["ai", "ml", "fintech", "saas"]):
+            st.caption("💡 Tip: Try combining industry filters with funding stages for more specific results")
         
         # Clear the last submitted value to prevent re-processing
         st.session_state.last_submitted = ""
