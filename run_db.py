@@ -103,6 +103,73 @@ def print_sample_records(db: FundingDatabase, limit: int = 5):
     except Exception as e:
         print(f"❌ Error retrieving sample records: {e}")
 
+def print_all_records(db: FundingDatabase):
+    """
+    Print all records from the database.
+    
+    Args:
+        db: FundingDatabase instance
+    """
+    try:
+        print("\n📋 All records in database:")
+        print("=" * 80)
+        
+        # Get total count first
+        stats = db.get_statistics()
+        total_count = stats.get('total_companies', 0)
+        
+        if total_count == 0:
+            print("No records found in database.")
+            return
+        
+        print(f"Total records: {total_count}")
+        print("=" * 80)
+        
+        # Fetch all records in batches to handle large datasets
+        batch_size = 100
+        skip = 0
+        record_number = 1
+        
+        while True:
+            records = db.read_all_companies(limit=batch_size, skip=skip)
+            
+            if not records:
+                break
+            
+            for record in records:
+                print(f"\n🏢 Record {record_number}:")
+                print(f"   ID: {record.get('_id', 'N/A')}")
+                print(f"   Company: {record.get('company_name', 'N/A')}")
+                print(f"   Funding: {record.get('funding_amount', 'N/A')}")
+                print(f"   Valuation: {record.get('valuation', 'N/A')}")
+                print(f"   Series: {record.get('series', 'N/A')}")
+                print(f"   Founded: {record.get('founded_year', 'N/A')}")
+                print(f"   Total Funding: {record.get('total_funding', 'N/A')}")
+                print(f"   Investors: {record.get('investors', 'N/A')}")
+                print(f"   Source: {record.get('source', 'N/A')}")
+                print(f"   Date: {record.get('date', 'N/A')}")
+                print(f"   Title: {record.get('title', 'N/A')}")
+                print(f"   URL: {record.get('url', 'N/A')}")
+                print(f"   Description: {record.get('description', 'N/A')}")
+                print(f"   Is Recent: {record.get('is_recent', 'N/A')}")
+                print(f"   Created At: {record.get('created_at', 'N/A')}")
+                print(f"   Updated At: {record.get('updated_at', 'N/A')}")
+                print(f"   Scraped At: {record.get('scraped_at', 'N/A')}")
+                
+                record_number += 1
+            
+            skip += batch_size
+            
+            # Show progress for large datasets
+            if record_number > 100 and record_number % 100 == 1:
+                print(f"\n... Processed {record_number - 1} records so far ...")
+        
+        print(f"\n" + "=" * 80)
+        print(f"📊 Total records displayed: {record_number - 1}")
+        
+    except Exception as e:
+        print(f"❌ Error retrieving all records: {e}")
+
 def print_database_stats(db: FundingDatabase):
     """
     Print database statistics.
@@ -169,6 +236,12 @@ Examples:
         help='Clear all existing data before loading (use with caution!)'
     )
     
+    parser.add_argument(
+        '--print-all',
+        action='store_true',
+        help='Print all records in the database'
+    )
+    
     args = parser.parse_args()
     
     print("🚀 Starting MongoDB Database Operations")
@@ -191,6 +264,11 @@ Examples:
             print_database_stats(db)
             if args.show_sample:
                 print_sample_records(db)
+            return
+        
+        # Handle print-all mode
+        if args.print_all:
+            print_all_records(db)
             return
         
         # Handle clear database option
@@ -224,6 +302,10 @@ Examples:
         # Show sample records if requested
         if args.show_sample:
             print_sample_records(db)
+        
+        # Show all records if requested
+        if args.print_all:
+            print_all_records(db)
         
     except KeyboardInterrupt:
         print("\n⚠️  Operation cancelled by user")
