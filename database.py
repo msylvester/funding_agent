@@ -18,7 +18,7 @@ class FundingDatabase:
             connection_string = os.getenv('MONGODB_URI', 'mongodb://localhost:27017/')
         
         self.client = MongoClient(connection_string)
-        self.db = self.client['funded_companies']
+        self.db = self.client['funded']
         self.collection = self.db['companies']
         
         # Create indexes for better query performance
