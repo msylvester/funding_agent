@@ -36,27 +36,26 @@ class TechCrunchScraper:
                 if not articles:
                     print(f"No articles found on page {page}, stopping")
                     break
-                return
                 
-                # # Process articles
-                # processed_count = 0
-                # max_articles_per_page = 10
+                # Process articles using the imported processor
+                processed_count = 0
+                max_articles_per_page = 10
                 
-                # for article in articles:
-                #     if processed_count >= max_articles_per_page:
-                #         break
+                for article in articles:
+                    if processed_count >= max_articles_per_page:
+                        break
                         
-                #     if self.processor.is_funding_article(article['title']):
-                #         article_data = self.processor.scrape_article_content(article['url'])
+                    if self.processor.is_funding_article(article['title']):
+                        article_data = self.processor.scrape_article_content(article['url'])
                         
-                #         if article_data and self.processor.is_valid_funding_data(article_data):
-                #             self.funding_data.append(article_data)
+                        if article_data and self.processor.is_valid_funding_data(article_data):
+                            self.funding_data.append(article_data)
                         
-                #         processed_count += 1
-                #         time.sleep(1)  # Rate limiting
+                        processed_count += 1
+                        time.sleep(1)  # Rate limiting
                 
-                # page += 1
-                # time.sleep(2)  # Delay between pages
+                page += 1
+                time.sleep(2)  # Delay between pages
                 
             except Exception as e:
                 print(f"Error scraping page {page}: {e}")
