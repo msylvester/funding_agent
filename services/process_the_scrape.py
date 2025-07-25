@@ -1,4 +1,7 @@
 import re
+import os
+import json
+import requests
 from datetime import datetime
 from urllib.parse import urljoin
 from bs4 import BeautifulSoup
@@ -8,11 +11,101 @@ class ArticleProcessor:
     def __init__(self, session, base_url):
         self.session = session
         self.base_url = base_url
+        self.openrouter_api_key = os.getenv('OPENROUTER_API_KEY')
+        if not self.openrouter_api_key:
+            print("Warning: OPENROUTER_API_KEY not found. Falling back to keyword-based filtering.")
     
     def is_funding_article(self, title):
-        """Check if article title indicates funding news"""
+        """Check if article title indicates funding news using AI"""
+        print(f'Checking if funding article: {title}')
+        
+        # If no API key, fall back to keyword-based approach
+        if not self.openrouter_api_key:
+            return self._is_funding_article_keywords(title)
+        
+        try:
+            prompt = f"""
+Analyze this article title and determine if it's about a company receiving funding/investment.
+
+Return ONLY a JSON object with this format:
+{{
+    "is_funding": true/false,
+    "confidence": 0.0-1.0,
+    "reason": "brief explanation"
+}}
+
+Look for:
+- Companies raising money (Series A, B, C, seed rounds, etc.)
+- Investment announcements
+- Funding rounds
+- Venture capital deals
+
+Exclude:
+- Events, conferences, awards
+- Product launches
+- General business news
+- Interviews or podcasts
+
+Article Title: "{title}"
+
+Return only the JSON object, no other text.
+"""
+
+            headers = {
+                'Authorization': f'Bearer {self.openrouter_api_key}',
+                'Content-Type': 'application/json',
+                'HTTP-Referer': 'https://github.com/your-repo',
+                'X-Title': 'TechCrunch Funding Classifier'
+            }
+            
+            data = {
+                'model': 'openai/o3-mini',
+                'messages': [{'role': 'user', 'content': prompt}],
+                'max_tokens': 200,
+                'temperature': 0.1
+            }
+            
+            response = requests.post(
+                'https://openrouter.ai/api/v1/chat/completions',
+                headers=headers,
+                json=data,
+                timeout=30
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                ai_response = result['choices'][0]['message']['content'].strip()
+                
+                try:
+                    # Clean up response if it has markdown
+                    if ai_response.startswith('```'):
+                        ai_response = ai_response.split('\n', 1)[1]
+                    if ai_response.endswith('```'):
+                        ai_response = ai_response.rsplit('\n', 1)[0]
+                    
+                    classification = json.loads(ai_response)
+                    is_funding = classification.get('is_funding', False)
+                    confidence = classification.get('confidence', 0.0)
+                    reason = classification.get('reason', 'No reason provided')
+                    
+                    print(f"AI Classification: {is_funding} (confidence: {confidence:.2f}) - {reason}")
+                    return is_funding
+                    
+                except json.JSONDecodeError as e:
+                    print(f"Failed to parse AI response: {e}")
+                    return self._is_funding_article_keywords(title)
+            else:
+                print(f"OpenRouter API error: {response.status_code}")
+                return self._is_funding_article_keywords(title)
+                
+        except Exception as e:
+            print(f"Error calling AI for funding classification: {e}")
+            return self._is_funding_article_keywords(title)
+    
+    def _is_funding_article_keywords(self, title):
+        """Fallback keyword-based funding article detection"""
         title_lower = title.lower()
-        print(f'the title is {title}')
+        
         # Exclude event/conference announcements
         exclude_keywords = [
             'disrupt', 'event', 'conference', 'agenda', 'winner', 'vote', 'session', 
