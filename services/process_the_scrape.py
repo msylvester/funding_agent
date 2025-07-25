@@ -12,7 +12,7 @@ class ArticleProcessor:
     def is_funding_article(self, title):
         """Check if article title indicates funding news"""
         title_lower = title.lower()
-        
+        print(f'the title is {title}')
         # Exclude event/conference announcements
         exclude_keywords = [
             'disrupt', 'event', 'conference', 'agenda', 'winner', 'vote', 'session', 
