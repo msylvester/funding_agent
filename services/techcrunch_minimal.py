@@ -32,7 +32,6 @@ class TechCrunchScraper:
                 
                 soup = BeautifulSoup(response.content, 'html.parser')
                 articles = self.processor.extract_articles_from_page(soup)
-                print(f'the articles are {articles}')
                 if not articles:
                     print(f"No articles found on page {page}, stopping")
                     break
@@ -44,8 +43,9 @@ class TechCrunchScraper:
                 for article in articles:
                     if processed_count >= max_articles_per_page:
                         break
-                        
+                    total_articles_funded = []
                     if self.processor.is_funding_article(article['title']):
+                        total_articles_funded.append(article['title'])
                         article_data = self.processor.scrape_article_content(article['url'])
                         
                         if article_data and self.processor.is_valid_funding_data(article_data):
@@ -53,10 +53,10 @@ class TechCrunchScraper:
                         
                         processed_count += 1
                         time.sleep(1)  # Rate limiting
-                
+
                 page += 1
                 time.sleep(2)  # Delay between pages
-                
+                print(f'the total articles found is {len(total_articles_funded)}')
             except Exception as e:
                 print(f"Error scraping page {page}: {e}")
                 break
