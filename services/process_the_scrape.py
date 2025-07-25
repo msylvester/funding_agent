@@ -23,7 +23,6 @@ class ArticleProcessor:
         title_lower = title.lower()
         immediate_funding_keywords = ['valuation', 'equity raise', 'raise', 'funding']
         if any(keyword in title_lower for keyword in immediate_funding_keywords):
-            print(f"Immediate funding match found: {title}")
             return True
         
         # If no API key, fall back to keyword-based approach
