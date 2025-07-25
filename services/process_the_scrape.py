@@ -17,7 +17,7 @@ class ArticleProcessor:
     
     def is_funding_article(self, title):
         """Check if article title indicates funding news using AI"""
-        print(f'Checking if funding article: {title}')
+        # print(f'Checking if funding article: {title}')
         
         # If no API key, fall back to keyword-based approach
         if not self.openrouter_api_key:
@@ -36,9 +36,13 @@ Return ONLY a JSON object with this format:
 
 Look for:
 - Companies raising money (Series A, B, C, seed rounds, etc.)
-- Investment announcements
+- Investment announcements  
 - Funding rounds
 - Venture capital deals
+- Equity raises
+- Valuations mentioned with funding context
+- Terms like "raises", "raised", "nabs", "gets", "secures", "seeking"
+- Dollar amounts with funding context (e.g., "$4.3B equity raise", "$40M at $4B valuation")
 
 Exclude:
 - Events, conferences, awards
