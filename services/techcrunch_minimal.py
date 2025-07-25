@@ -39,11 +39,11 @@ class TechCrunchScraper:
                 # Process articles using the imported processor
                 processed_count = 0
                 max_articles_per_page = 10
+                total_articles_funded = []
                 
                 for article in articles:
                     if processed_count >= max_articles_per_page:
                         break
-                    total_articles_funded = []
                     if self.processor.is_funding_article(article['title']):
                         total_articles_funded.append(article['title'])
                         article_data = self.processor.scrape_article_content(article['url'])
@@ -56,7 +56,7 @@ class TechCrunchScraper:
 
                 page += 1
                 time.sleep(2)  # Delay between pages
-                print(f'the total articles found is {len(total_articles_funded)}')
+                print(f'Page {page-1}: Found {len(total_articles_funded)} funding articles')
             except Exception as e:
                 print(f"Error scraping page {page}: {e}")
                 break
