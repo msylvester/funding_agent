@@ -2,7 +2,8 @@ import requests
 from bs4 import BeautifulSoup
 import json
 import time
-from process_the_scrape import ArticleProcessor
+from article_processor import ArticleProcessor
+from database import FundingDatabase
 
 
 class TechCrunchScraper:
@@ -13,6 +14,7 @@ class TechCrunchScraper:
         })
         self.base_url = "https://techcrunch.com"
         self.funding_data = []
+        self.failed_funding_articles = []  # Track funding articles that failed validation
         self.processor = ArticleProcessor(self.session, self.base_url)
     
     
@@ -50,6 +52,11 @@ class TechCrunchScraper:
                         
                         if article_data and self.processor.is_valid_funding_data(article_data):
                             self.funding_data.append(article_data)
+                        else:
+                            if article_data:
+                                print(f"❌ Failed validation: {article_data.get('company_name', 'No company')} - {article_data.get('funding_amount', 'No amount')}")
+                            else:
+                                print(f"❌ Failed to scrape content from {article['url']}")
                         
                         processed_count += 1
                         time.sleep(1)  # Rate limiting
@@ -70,6 +77,12 @@ class TechCrunchScraper:
             print(f"Saved {len(self.funding_data)} articles to {filename}")
         except Exception as e:
             print(f"Error saving to {filename}: {e}")
+
+    def write(self):
+        # make  GET
+        # compare count of result of GET with the self.funding_data
+        # if self.funding_data larger 
+        # write the new elements to the db 
     
     def run_scraper(self, max_pages=3):
         """Run the complete scraping process"""
