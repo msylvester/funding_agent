@@ -80,6 +80,7 @@ class TechCrunchScraper:
         # compare count of result of GET with the self.funding_data
         # if self.funding_data larger 
         # write the new elements to the db 
+        pass
     
     def run_scraper(self, max_pages=1):
         """Run the complete scraping process"""
