@@ -52,7 +52,7 @@ Return only the JSON object, no other text.
         }
         
         data = {
-            'model': 'openai/o3-mini',
+            'model': 'anthropic/claude-3-haiku',
             'messages': [{'role': 'user', 'content': prompt}],
             'max_tokens': 200,
             'temperature': 0.1

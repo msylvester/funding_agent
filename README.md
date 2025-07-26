@@ -21,7 +21,8 @@ A comprehensive funding data scraper and RAG (Retrieval-Augmented Generation) ag
 - `database.py` - 🗄️ MongoDB database operations and schema management
 
 ### 🤖 AI Agents (`/services/agents/`)
-- `is_funding_agent.py` - 🎯 AI agent for classifying funding articles using OpenRouter API
+- `agent_007.py` - 🎯 AI agent for classifying funding articles using OpenRouter API
+- `agent_data_struct.py` - 🧠 AI agent for extracting structured funding data
 
 ### 📊 Data Files
 - `techcrunch_minimal.json` - 📄 Latest scraped funding data from TechCrunch
