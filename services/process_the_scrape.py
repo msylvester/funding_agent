@@ -25,92 +25,92 @@ class ArticleProcessor:
         if any(keyword in title_lower for keyword in immediate_funding_keywords):
             return True
         
-        # If no API key, fall back to keyword-based approach
+
         if not self.openrouter_api_key:
             return self._is_funding_article_keywords(title)
         
-        try:
-            prompt = f"""
-Analyze this article title and determine if it's about a company receiving funding/investment.
+#         try:
+#             prompt = f"""
+# Analyze this article title and determine if it's about a company receiving funding/investment.
 
-Return ONLY a JSON object with this format:
-{{
-    "is_funding": true/false,
-    "confidence": 0.0-1.0,
-    "reason": "brief explanation"
-}}
+# Return ONLY a JSON object with this format:
+# {{
+#     "is_funding": true/false,
+#     "confidence": 0.0-1.0,
+#     "reason": "brief explanation"
+# }}
 
-Look for:
-- Companies raising money (Series A, B, C, seed rounds, etc.)
-- Investment announcements  
-- Funding rounds
-- Venture capital deals
-- Equity raises
-- Valuations mentioned with funding context
-- Terms like "raises", "raised", "nabs", "gets", "secures", "seeking"
-- Dollar amounts with funding context (e.g., "$4.3B equity raise", "$40M at $4B valuation")
+# Look for:
+# - Companies raising money (Series A, B, C, seed rounds, etc.)
+# - Investment announcements  
+# - Funding rounds
+# - Venture capital deals
+# - Equity raises
+# - Valuations mentioned with funding context
+# - Terms like "raises", "raised", "nabs", "gets", "secures", "seeking"
+# - Dollar amounts with funding context (e.g., "$4.3B equity raise", "$40M at $4B valuation")
 
-Exclude:
-- Events, conferences, awards
-- Product launches
-- General business news
-- Interviews or podcasts
+# Exclude:
+# - Events, conferences, awards
+# - Product launches
+# - General business news
+# - Interviews or podcasts
 
-Article Title: "{title}"
+# Article Title: "{title}"
 
-Return only the JSON object, no other text.
-"""
+# Return only the JSON object, no other text.
+# """
 
-            headers = {
-                'Authorization': f'Bearer {self.openrouter_api_key}',
-                'Content-Type': 'application/json',
-                'HTTP-Referer': 'https://github.com/your-repo',
-                'X-Title': 'TechCrunch Funding Classifier'
-            }
+#             headers = {
+#                 'Authorization': f'Bearer {self.openrouter_api_key}',
+#                 'Content-Type': 'application/json',
+#                 'HTTP-Referer': 'https://github.com/your-repo',
+#                 'X-Title': 'TechCrunch Funding Classifier'
+#             }
             
-            data = {
-                'model': 'openai/o3-mini',
-                'messages': [{'role': 'user', 'content': prompt}],
-                'max_tokens': 200,
-                'temperature': 0.1
-            }
+#             data = {
+#                 'model': 'openai/o3-mini',
+#                 'messages': [{'role': 'user', 'content': prompt}],
+#                 'max_tokens': 200,
+#                 'temperature': 0.1
+#             }
             
-            response = requests.post(
-                'https://openrouter.ai/api/v1/chat/completions',
-                headers=headers,
-                json=data,
-                timeout=30
-            )
+#             response = requests.post(
+#                 'https://openrouter.ai/api/v1/chat/completions',
+#                 headers=headers,
+#                 json=data,
+#                 timeout=30
+#             )
             
-            if response.status_code == 200:
-                result = response.json()
-                ai_response = result['choices'][0]['message']['content'].strip()
+#             if response.status_code == 200:
+#                 result = response.json()
+#                 ai_response = result['choices'][0]['message']['content'].strip()
                 
-                try:
-                    # Clean up response if it has markdown
-                    if ai_response.startswith('```'):
-                        ai_response = ai_response.split('\n', 1)[1]
-                    if ai_response.endswith('```'):
-                        ai_response = ai_response.rsplit('\n', 1)[0]
+#                 try:
+#                     # Clean up response if it has markdown
+#                     if ai_response.startswith('```'):
+#                         ai_response = ai_response.split('\n', 1)[1]
+#                     if ai_response.endswith('```'):
+#                         ai_response = ai_response.rsplit('\n', 1)[0]
                     
-                    classification = json.loads(ai_response)
-                    is_funding = classification.get('is_funding', False)
-                    confidence = classification.get('confidence', 0.0)
-                    reason = classification.get('reason', 'No reason provided')
+#                     classification = json.loads(ai_response)
+#                     is_funding = classification.get('is_funding', False)
+#                     confidence = classification.get('confidence', 0.0)
+#                     reason = classification.get('reason', 'No reason provided')
                     
-                    print(f"AI Classification: {is_funding} (confidence: {confidence:.2f}) - {reason}")
-                    return is_funding
+#                     print(f"AI Classification: {is_funding} (confidence: {confidence:.2f}) - {reason}")
+#                     return is_funding
                     
-                except json.JSONDecodeError as e:
-                    print(f"Failed to parse AI response: {e}")
-                    return self._is_funding_article_keywords(title)
-            else:
-                print(f"OpenRouter API error: {response.status_code}")
-                return self._is_funding_article_keywords(title)
+#                 except json.JSONDecodeError as e:
+#                     print(f"Failed to parse AI response: {e}")
+#                     return self._is_funding_article_keywords(title)
+#             else:
+#                 print(f"OpenRouter API error: {response.status_code}")
+#                 return self._is_funding_article_keywords(title)
                 
-        except Exception as e:
-            print(f"Error calling AI for funding classification: {e}")
-            return self._is_funding_article_keywords(title)
+#         except Exception as e:
+#             print(f"Error calling AI for funding classification: {e}")
+#             return self._is_funding_article_keywords(title)
     
     def _is_funding_article_keywords(self, title):
         """Fallback keyword-based funding article detection"""
@@ -127,6 +127,87 @@ Return only the JSON object, no other text.
         # Check for funding keywords
         funding_keywords = ['closes', 'raises', 'raised', 'funded', 'funding', 'investment', 'series', 'round']
         return any(keyword in title_lower for keyword in funding_keywords)
+    
+    def enhance_with_ai(self, title, content):
+        """Use Haiku via OpenRouter to extract structured funding data"""
+        if not self.openrouter_api_key:
+            return None
+        try:
+            prompt = f"""
+Extract structured funding information from this TechCrunch article. Return ONLY a valid JSON object with these exact fields:
+
+{{
+    "company_name": "exact company name",
+    "funding_amount": "amount with unit like $50M, $2.5B, or 'Not specified'",
+    "valuation": "valuation with unit like $500M, $1.2B, or 'Not specified'",
+    "series": "Series A, Series B, Seed, Pre-seed, or 'Not specified'",
+    "founded_year": "year as string like '2020' or 'Not specified'",
+    "total_funding": "total funding raised with unit or 'Not specified'",
+    "investors": "comma-separated list of investors or 'Not specified'",
+    "description": "brief company description or 'Not specified'",
+    "sector": "industry/sector or 'Not specified'"
+}}
+
+Article Title: {title}
+
+Article Content: {content[:1500]}
+
+Return only the JSON object, no other text. If this article is NOT about a company receiving funding, return {{"company_name": "Not specified"}}.
+"""
+
+            headers = {
+                'Authorization': f'Bearer {self.openrouter_api_key}',
+                'Content-Type': 'application/json',
+                'HTTP-Referer': 'https://github.com/your-repo',
+                'X-Title': 'TechCrunch Funding Scraper'
+            }
+            
+            data = {
+                'model': 'anthropic/claude-3-haiku',
+                'messages': [
+                    {
+                        'role': 'user',
+                        'content': prompt
+                    }
+                ],
+                'max_tokens': 500,
+                'temperature': 0.1
+            }
+            
+            response = requests.post(
+                'https://openrouter.ai/api/v1/chat/completions',
+                headers=headers,
+                json=data,
+                timeout=30
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                ai_response = result['choices'][0]['message']['content'].strip()
+                
+                # Try to parse the JSON response
+                try:
+                    # Remove any markdown code blocks if present
+                    if ai_response.startswith('```'):
+                        ai_response = ai_response.split('\n', 1)[1]
+                    if ai_response.endswith('```'):
+                        ai_response = ai_response.rsplit('\n', 1)[0]
+                    
+                    enhanced_data = json.loads(ai_response)
+                    print(f"Successfully enhanced data with AI for: {enhanced_data.get('company_name', 'Unknown')}")
+                    return enhanced_data
+                    
+                except json.JSONDecodeError as e:
+                    print(f"Failed to parse AI response as JSON: {e}")
+                    print(f"AI response was: {ai_response}")
+                    return None
+            else:
+                print(f"OpenRouter API error: {response.status_code} - {response.text}")
+                return None
+                
+        except Exception as e:
+            print(f"Error calling OpenRouter API: {e}")
+            return None
     
     def extract_articles_from_page(self, soup):
         """Extract article links and titles from the page"""
@@ -170,6 +251,9 @@ Return only the JSON object, no other text.
         """Scrape individual article content"""
         try:
             response = self.session.get(url, timeout=10)
+
+
+
             response.raise_for_status()
             
             soup = BeautifulSoup(response.content, 'html.parser')
@@ -177,7 +261,8 @@ Return only the JSON object, no other text.
             # Extract title
             title = "Not specified"
             title_selectors = ['h1.entry-title', 'h1[class*="title"]', 'h1', '.entry-title']
-            
+
+
             for selector in title_selectors:
                 title_element = soup.select_one(selector)
                 if title_element:
@@ -203,7 +288,21 @@ Return only the JSON object, no other text.
             if date_element:
                 date = date_element.get('datetime') or date_element.get_text(strip=True)
             
-            # Extract funding details
+            # Try AI enhancement first, fall back to regex if needed
+            if self.openrouter_api_key:
+                ai_funding_details = self.enhance_with_ai(title, content)
+                if ai_funding_details and ai_funding_details.get('company_name') != 'Not specified':
+                    return {
+                        'source': 'TechCrunch',
+                        'title': title,
+                        'url': url,
+                        'date': date,
+                        'content': content[:500] if content else "",
+                        'scraped_at': datetime.now().isoformat(),
+                        **ai_funding_details
+                    }
+            
+            # Fallback to regex extraction
             funding_details = self.extract_funding_details(title, content)
             
             return {
