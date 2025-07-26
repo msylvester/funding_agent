@@ -78,19 +78,14 @@ Return only the JSON object, no other text.
                 
                 classification = json.loads(ai_response)
                 is_funding = classification.get('is_funding', False)
-                confidence = classification.get('confidence', 0.0)
-                reason = classification.get('reason', 'No reason provided')
                 
-                print(f"AI Classification: {is_funding} (confidence: {confidence:.2f}) - {reason}")
+                print(f"{title} {is_funding}")
                 return is_funding
                 
             except json.JSONDecodeError as e:
-                print(f"Failed to parse AI response: {e}")
                 return None
         else:
-            print(f"OpenRouter API error: {response.status_code}")
             return None
             
     except Exception as e:
-        print(f"Error calling AI for funding classification: {e}")
         return None
