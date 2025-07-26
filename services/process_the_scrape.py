@@ -5,6 +5,7 @@ import requests
 from datetime import datetime
 from urllib.parse import urljoin
 from bs4 import BeautifulSoup
+from agents.is_funding_agent import is_funding_article_ai
 
 
 class ArticleProcessor:
