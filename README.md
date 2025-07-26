@@ -1,63 +1,72 @@
-# Funding Scraper
+# 💰 Funding Scraper
 
 A comprehensive funding data scraper and RAG (Retrieval-Augmented Generation) agent for tracking startup funding rounds from TechCrunch.
 
-## Features
+## ✨ Features
 
-- **Web Scraping**: Automated scraping of TechCrunch funding articles
-- **Data Processing**: Clean and filter funding data with comprehensive metadata
-- **RAG Agent**: Intelligent query system with TF-IDF vectorization for funding data retrieval
-- **Streamlit Interface**: Interactive web app for querying funding data
-- **AI Enhancement**: Optional OpenRouter API integration for enhanced data processing
+- 🕷️ **Web Scraping**: Automated scraping of TechCrunch funding articles
+- 🤖 **AI-Powered Classification**: Smart funding article detection using OpenRouter API
+- 🧠 **RAG Agent**: Intelligent query system with TF-IDF vectorization for funding data retrieval
+- 🌐 **Streamlit Interface**: Interactive web app for querying funding data
+- 📊 **MongoDB Integration**: Scalable database storage for funding data
 
-## Files
+## 📁 Project Structure
 
-- `techcrunch_fundraising_scraper.py` - Main scraper for TechCrunch funding articles
-- `rag_agent.py` - RAG system with Streamlit interface for querying funding data
-- `clean_data.py` - Data cleaning utilities
-- `clean_funding_data.py` - Funding-specific data cleaning
-- `filter_funding_data.py` - Data filtering functionality
-- `merge_augmented_data.py` - Merge and augment scraped data
-- `scraper.py` - General web scraping utilities
+### 🎯 Main Application
+- `rag_agent.py` - 🎨 Streamlit RAG interface for querying funding data
 
-## Data Files
+### 🛠️ Services (`/services/`)
+- `techcrunch_minimal.py` - 🕷️ Main TechCrunch scraper with AI enhancement
+- `article_processor.py` - 📝 Article content processing and funding data extraction
+- `database.py` - 🗄️ MongoDB database operations and schema management
 
-- `funding_data.json` - Main funding dataset
-- `funding_data_augmented.json` - Enhanced funding data with AI processing
-- `funding_data_complete.json` - Complete processed dataset
-- `final_scrape.json` - Final scraped results
-- `scraped_one.json` - Single scraping session results
+### 🤖 AI Agents (`/services/agents/`)
+- `is_funding_agent.py` - 🎯 AI agent for classifying funding articles using OpenRouter API
 
-## Setup
+### 📊 Data Files
+- `techcrunch_minimal.json` - 📄 Latest scraped funding data from TechCrunch
 
-1. Install dependencies:
+## 🚀 Setup
+
+1. **Install dependencies:**
 ```bash
-pip install streamlit pandas scikit-learn beautifulsoup4 requests numpy
+pip install streamlit pandas scikit-learn beautifulsoup4 requests numpy pymongo
 ```
 
-2. (Optional) Set OpenRouter API key for AI enhancement:
+2. **Set OpenRouter API key for AI enhancement:**
 ```bash
 export OPENROUTER_API_KEY=your_api_key_here
 ```
 
-## Usage
+3. **Set MongoDB connection (optional):**
+```bash
+export MONGODB_URI=mongodb://localhost:27017/
+```
 
-### Run the RAG Agent Interface
+## 🎮 Usage
+
+### 🎨 Run the RAG Agent Interface
 ```bash
 streamlit run rag_agent.py
 ```
 
-### Run the Scraper
-```python
-from techcrunch_fundraising_scraper import TechCrunchFundraisingScaper
-
-scraper = TechCrunchFundraisingScaper()
-scraper.scrape_funding_data()
+### 🕷️ Run the Scraper
+```bash
+cd services
+python techcrunch_minimal.py
 ```
 
-## Features
+### 🗄️ Load Data to Database
+```bash
+cd services
+python load_techcrunch_to_db.py --list  # View current database
+python load_techcrunch_to_db.py         # Load new data
+```
 
-- **Smart Filtering**: Date-based filtering and metadata-driven queries
-- **Semantic Search**: TF-IDF vectorization for relevant funding round retrieval
-- **Real-time Scraping**: Live data collection from TechCrunch funding articles
-- **Data Augmentation**: AI-powered enhancement of scraped funding data
+## 🔧 Key Components
+
+- **🎯 Smart Filtering**: AI-powered funding article classification
+- **🔍 Semantic Search**: TF-IDF vectorization for relevant funding round retrieval  
+- **⚡ Real-time Scraping**: Live data collection from TechCrunch funding articles
+- **🤖 AI Enhancement**: OpenRouter API integration for structured data extraction
+- **📊 Database Integration**: MongoDB storage with comprehensive schema
