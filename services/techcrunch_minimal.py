@@ -18,15 +18,12 @@ class TechCrunchScraper:
         self.processor = ArticleProcessor(self.session, self.base_url)
     
     
-    def scrape_fundraising_page(self, max_pages=3):
+    def scrape_fundraising_page(self, max_pages=1):
         """Scrape the TechCrunch fundraising category pages"""
         page = 1
         
         while page <= max_pages:
-            if page == 1:
-                url = "https://techcrunch.com/category/fundraising/"
-            else:
-                url = f"https://techcrunch.com/category/fundraising/page/{page}/"
+            url = "https://techcrunch.com/category/fundraising/"
             
             try:
                 response = self.session.get(url)
@@ -84,7 +81,7 @@ class TechCrunchScraper:
         # if self.funding_data larger 
         # write the new elements to the db 
     
-    def run_scraper(self, max_pages=3):
+    def run_scraper(self, max_pages=1):
         """Run the complete scraping process"""
         print("Starting minimal TechCrunch scraper...")
         self.scrape_fundraising_page(max_pages)
@@ -100,7 +97,7 @@ class TechCrunchScraper:
 
 def main():
     scraper = TechCrunchScraper()
-    data = scraper.run_scraper(max_pages=3)
+    data = scraper.run_scraper(max_pages=1)
     return data
 
 
