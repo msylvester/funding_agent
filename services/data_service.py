@@ -20,7 +20,7 @@ class DataService:
         """
         try:
             # Get recent companies (last 10) with all their details
-            recent_companies = self.db.read_all_companies(limit=10)
+            recent_companies = self.db.read_all_companies()
             
             # Embed the data after successful retrieval
             embed_result = self.embed_data(recent_companies)

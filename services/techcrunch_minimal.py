@@ -23,7 +23,10 @@ class TechCrunchScraper:
         page = 1
         
         while page <= max_pages:
-            url = "https://techcrunch.com/category/fundraising/"
+            if page == 1:
+                url = "https://techcrunch.com/category/fundraising/"
+            else:
+                url = f"https://techcrunch.com/category/fundraising/page/{page}/"
             
             try:
                 response = self.session.get(url)
@@ -50,6 +53,14 @@ class TechCrunchScraper:
                         if article_data and self.processor.is_valid_funding_data(article_data):
                             self.funding_data.append(article_data)
                         else:
+                            # Track failed funding articles
+                            failed_article = {
+                                'title': article['title'],
+                                'url': article['url'],
+                                'reason': 'No data extracted' if not article_data else f"Invalid data - Company: {article_data.get('company_name', 'None')}, Amount: {article_data.get('funding_amount', 'None')}"
+                            }
+                            self.failed_funding_articles.append(failed_article)
+                            
                             if article_data:
                                 print(f"❌ Failed validation: {article_data.get('company_name', 'No company')} - {article_data.get('funding_amount', 'No amount')}")
                             else:
@@ -87,11 +98,23 @@ class TechCrunchScraper:
         print("Starting minimal TechCrunch scraper...")
         self.scrape_fundraising_page(max_pages)
         
+        print(f"\n📊 Scraping Summary:")
+        print(f"Total articles that passed title filtering: {len(self.failed_funding_articles) + len(self.funding_data)}")
+        print(f"Articles that failed validation: {len(self.failed_funding_articles)}")
+        print(f"Articles successfully saved: {len(self.funding_data)}")
+        
         if self.funding_data:
             self.save_to_json()
-            print(f"Scraping completed. Found {len(self.funding_data)} funding articles.")
+            print(f"\n✅ Scraping completed. Found {len(self.funding_data)} funding articles.")
+            print(f"💾 Data saved to techcrunch_minimal.json")
         else:
-            print("No funding articles found.")
+            print("\n❌ No valid funding articles found to save to JSON.")
+            if self.failed_funding_articles:
+                print("However, some articles were identified as funding but failed validation:")
+                for failed in self.failed_funding_articles[:3]:  # Show first 3
+                    print(f"  • {failed['title'][:80]}...")
+                if len(self.failed_funding_articles) > 3:
+                    print(f"  ... and {len(self.failed_funding_articles) - 3} more")
         
         return self.funding_data
 
