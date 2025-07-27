@@ -38,4 +38,13 @@ FILE_PATHS = {
     'funding_data_complete': 'funding_data_complete.json',
     'final_scrape': 'final_scrape.json',
     'scraped_one': 'scraped_one.json'
+}"""
+Application configuration settings
+"""
+
+APP_CONFIG = {
+    'page_title': 'Funding Intelligence RAG',
+    'page_icon': '💰',
+    'layout': 'wide',
+    'sidebar_state': 'collapsed'
 }

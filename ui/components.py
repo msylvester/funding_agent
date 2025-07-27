@@ -35,7 +35,7 @@ def render_search_form():
         )
         
         # Create columns for buttons with better spacing
-        col1, col2, col3 = st.columns([3, 0.5, 2])
+        col1, col2, col3, col4 = st.columns([3, 0.3, 2, 1.5])
         
         with col1:
             submit_button = st.form_submit_button(
@@ -45,25 +45,35 @@ def render_search_form():
             )
         
         with col3:
-            ingest_button = st.form_submit_button(
+            update_button = st.form_submit_button(
                 "🔄 Update Data", 
                 use_container_width=True,  
                 help="Scrape latest funding data from TechCrunch"
             )
         
+        with col4:
+            ingest_button = st.form_submit_button(
+                "📥 Ingest", 
+                use_container_width=True
+            )
+        
         # Handle form submissions
-        _handle_form_submission(submit_button, ingest_button, user_input)
+        _handle_form_submission(submit_button, update_button, ingest_button, user_input)
 
-def _handle_form_submission(submit_button: bool, ingest_button: bool, user_input: str):
+def _handle_form_submission(submit_button: bool, update_button: bool, ingest_button: bool, user_input: str):
     """Handle form submission logic"""
     if submit_button and user_input:
         # Store the input in session state to process after form submission
         st.session_state.last_submitted = user_input
     
-    if ingest_button:
+    if update_button:
         with st.spinner("🔄 Fetching latest funding data from TechCrunch..."):
             # TODO: Implement data ingestion logic
             st.info("Data ingestion functionality not implemented yet")
+    
+    if ingest_button:
+        # No associated event as per requirements
+        pass
 
 def render_response_section(response: str):
     """Render the response section with formatted output"""
