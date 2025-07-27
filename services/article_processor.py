@@ -145,7 +145,7 @@ class ArticleProcessor:
             if self.openrouter_api_key:
                 ai_funding_details = enhance_with_ai(title, content, self.openrouter_api_key)
                 if ai_funding_details and ai_funding_details.get('company_name') != 'Not specified':
-                    return {
+                    article_data = {
                         'source': 'TechCrunch',
                         'title': title,
                         'url': url,
@@ -154,11 +154,16 @@ class ArticleProcessor:
                         'scraped_at': datetime.now().isoformat(),
                         **ai_funding_details
                     }
+                    
+                    # Write successfully processed company to database
+                    self.write_company_to_db(article_data)
+                    
+                    return article_data
             
             # Fallback to regex extraction
             funding_details = self.extract_funding_details(title, content)
             
-            return {
+            article_data = {
                 'source': 'TechCrunch',
                 'title': title,
                 'url': url,
@@ -167,6 +172,12 @@ class ArticleProcessor:
                 'scraped_at': datetime.now().isoformat(),
                 **funding_details
             }
+            
+            # Write to database if we have valid funding data
+            if self.is_valid_funding_data(funding_details):
+                self.write_company_to_db(article_data)
+            
+            return article_data
             
         except Exception as e:
             print(f"Error scraping article {url}: {e}")
