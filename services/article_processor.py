@@ -5,7 +5,7 @@ import requests
 from datetime import datetime
 from urllib.parse import urljoin
 from bs4 import BeautifulSoup
-from agents.is_funding_agent import is_funding_article_ai
+from agents.agent_007 import is_funding_article_ai
 from agents.agent_data_struct import enhance_with_ai
 
 
@@ -230,3 +230,8 @@ class ArticleProcessor:
         has_company = funding_details.get('company_name', 'Not specified') != 'Not specified'
         has_amount = funding_details.get('funding_amount', 'Not specified') != 'Not specified'
         return has_company and has_amount
+
+    '''
+    lets adda  function that writes, only correctly scraped companies to the stream
+    That is, after the article is processed thorugh `enchaned_with_ai` (and succeeds), write it to the databse
+    '''
