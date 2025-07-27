@@ -2,12 +2,17 @@
 Data service layer for handling database operations
 """
 from services.database import FundingDatabase
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
+from sklearn.feature_extraction.text import TfidfVectorizer
 import streamlit as st
 
 class DataService:
     def __init__(self):
         self.db = FundingDatabase()
+        self.vectorizer = TfidfVectorizer(max_features=1000, stop_words='english')
+        self.documents = []
+        self.document_vectors = None
+        self.companies_data = []
     
     def ingest_data(self) -> Dict[str, Any]:
         """
@@ -17,16 +22,69 @@ class DataService:
             # Get recent companies (last 10) with all their details
             recent_companies = self.db.read_all_companies(limit=10)
             
+            # Embed the data after successful retrieval
+            embed_result = self.embed_data(recent_companies)
+            
             return {
                 'success': True,
                 'recent_companies': recent_companies,
-                'message': f"Successfully retrieved {len(recent_companies)} recent companies"
+                'message': f"Successfully retrieved {len(recent_companies)} recent companies and created {len(self.documents)} document embeddings",
+                'embed_success': embed_result['success']
             }
         except Exception as e:
             return {
                 'success': False,
                 'error': str(e),
                 'message': 'Failed to retrieve data from MongoDB'
+            }
+    
+    def embed_data(self, companies_data: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Create document embeddings from company data
+        """
+        try:
+            if not companies_data:
+                return {
+                    'success': False,
+                    'message': 'No company data provided for embedding'
+                }
+            
+            # Store the companies data for later use
+            self.companies_data = companies_data
+            
+            # Create documents by combining relevant fields
+            self.documents = []
+            for company in companies_data:
+                doc = f"""
+                Company: {company.get('company_name', '')}
+                Funding Amount: {company.get('funding_amount', '')}
+                Valuation: {company.get('valuation', '')}
+                Series: {company.get('series', '')}
+                Total Funding: {company.get('total_funding', '')}
+                Investors: {company.get('investors', '')}
+                Sector: {company.get('sector', '')}
+                Description: {company.get('description', '')}
+                """
+                self.documents.append(doc.strip())
+            
+            # Create TF-IDF vectors
+            if self.documents:
+                self.document_vectors = self.vectorizer.fit_transform(self.documents)
+                return {
+                    'success': True,
+                    'message': f'Successfully created embeddings for {len(self.documents)} documents'
+                }
+            else:
+                return {
+                    'success': False,
+                    'message': 'No documents created for embedding'
+                }
+                
+        except Exception as e:
+            return {
+                'success': False,
+                'error': str(e),
+                'message': 'Failed to create document embeddings'
             }
     
     def close(self):
