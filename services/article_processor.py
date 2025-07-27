@@ -7,6 +7,7 @@ from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 from agents.agent_007 import is_funding_article_ai
 from agents.agent_data_struct import enhance_with_ai
+from database import FundingDatabase
 
 
 class ArticleProcessor:
@@ -231,7 +232,48 @@ class ArticleProcessor:
         has_amount = funding_details.get('funding_amount', 'Not specified') != 'Not specified'
         return has_company and has_amount
 
-    '''
-    lets adda  function that writes, only correctly scraped companies to the stream
-    That is, after the article is processed thorugh `enchaned_with_ai` (and succeeds), write it to the databse
-    '''
+    def write_company_to_db(self, company_data):
+        """
+        Write successfully scraped company to MongoDB database
+        Only writes if the company isn't already in the database
+        
+        Args:
+            company_data: Dictionary containing company funding information
+            
+        Returns:
+            str or None: The ObjectId of the created document as string, or None if not created
+        """
+        try:
+            # Initialize database connection
+            db = FundingDatabase()
+            
+            # Check if company already exists in database
+            company_name = company_data.get('company_name', '')
+            url = company_data.get('url', '')
+            
+            if not company_name or company_name == 'Not specified':
+                print(f"Skipping database write - no valid company name")
+                db.close_connection()
+                return None
+            
+            # Check for existing records by company name and URL
+            existing_companies = db.read_companies_by_name(company_name)
+            
+            # Check if this exact article already exists (by URL)
+            if url:
+                for existing in existing_companies:
+                    if existing.get('url') == url:
+                        print(f"Company {company_name} with URL {url} already exists in database")
+                        db.close_connection()
+                        return None
+            
+            # If no duplicate found, create new record
+            company_id = db.create_company(company_data)
+            print(f"Successfully wrote {company_name} to database with ID: {company_id}")
+            
+            db.close_connection()
+            return company_id
+            
+        except Exception as e:
+            print(f"Error writing company to database: {e}")
+            return None
