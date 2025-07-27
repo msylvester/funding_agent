@@ -14,15 +14,11 @@ class DataService:
         Handle data ingestion - query MongoDB and return results
         """
         try:
-            # Get statistics about current data
-            stats = self.db.get_statistics()
-            
-            # Get recent companies (last 10)
+            # Get recent companies (last 10) with all their details
             recent_companies = self.db.read_all_companies(limit=10)
             
             return {
                 'success': True,
-                'stats': stats,
                 'recent_companies': recent_companies,
                 'message': f"Successfully retrieved {len(recent_companies)} recent companies"
             }

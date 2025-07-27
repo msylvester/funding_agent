@@ -81,16 +81,31 @@ def _handle_form_submission(submit_button: bool, update_button: bool, ingest_but
                 if result['success']:
                     st.success(result['message'])
                     
-                    # Display statistics
-                    if 'stats' in result:
-                        st.subheader("📊 Database Statistics")
-                        st.json(result['stats'])
-                    
-                    # Display recent companies
+                    # Display recent companies with full details
                     if result['recent_companies']:
                         st.subheader("🏢 Recent Companies")
-                        for company in result['recent_companies'][:5]:  # Show first 5
-                            st.write(f"• {company.get('company_name', 'Unknown')} - {company.get('funding_amount', 'N/A')}")
+                        
+                        for i, company in enumerate(result['recent_companies'], 1):
+                            with st.expander(f"{i}. {company.get('company_name', 'Unknown Company')} - {company.get('funding_amount', 'N/A')}"):
+                                col1, col2 = st.columns(2)
+                                
+                                with col1:
+                                    st.write(f"**Company:** {company.get('company_name', 'N/A')}")
+                                    st.write(f"**Funding Amount:** {company.get('funding_amount', 'N/A')}")
+                                    st.write(f"**Series:** {company.get('series', 'N/A')}")
+                                    st.write(f"**Valuation:** {company.get('valuation', 'N/A')}")
+                                    st.write(f"**Sector:** {company.get('sector', 'N/A')}")
+                                
+                                with col2:
+                                    st.write(f"**Investors:** {company.get('investors', 'N/A')}")
+                                    st.write(f"**Founded Year:** {company.get('founded_year', 'N/A')}")
+                                    st.write(f"**Total Funding:** {company.get('total_funding', 'N/A')}")
+                                    st.write(f"**Date:** {company.get('date', 'N/A')}")
+                                    if company.get('url'):
+                                        st.write(f"**Article:** [Read more]({company.get('url')})")
+                                
+                                if company.get('description'):
+                                    st.write(f"**Description:** {company.get('description')}")
                 else:
                     st.error(f"Error: {result['message']}")
                     if 'error' in result:
