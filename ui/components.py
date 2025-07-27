@@ -3,6 +3,7 @@ Reusable UI components for the Streamlit application
 """
 
 import streamlit as st
+from services.data_service import DataService
 
 def render_header():
     """Render the main header section"""
@@ -72,8 +73,30 @@ def _handle_form_submission(submit_button: bool, update_button: bool, ingest_but
             st.info("Data ingestion functionality not implemented yet")
     
     if ingest_button:
-        # No associated event as per requirements
-        pass
+        with st.spinner("📥 Querying MongoDB database..."):
+            data_service = DataService()
+            try:
+                result = data_service.ingest_data()
+                
+                if result['success']:
+                    st.success(result['message'])
+                    
+                    # Display statistics
+                    if 'stats' in result:
+                        st.subheader("📊 Database Statistics")
+                        st.json(result['stats'])
+                    
+                    # Display recent companies
+                    if result['recent_companies']:
+                        st.subheader("🏢 Recent Companies")
+                        for company in result['recent_companies'][:5]:  # Show first 5
+                            st.write(f"• {company.get('company_name', 'Unknown')} - {company.get('funding_amount', 'N/A')}")
+                else:
+                    st.error(f"Error: {result['message']}")
+                    if 'error' in result:
+                        st.error(f"Details: {result['error']}")
+            finally:
+                data_service.close()
 
 def render_response_section(response: str):
     """Render the response section with formatted output"""
