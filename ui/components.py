@@ -4,6 +4,7 @@ Reusable UI components for the Streamlit application
 
 import streamlit as st
 from services.data_service import DataService
+from services.scraper_service import TechCrunchScraper
 
 def render_header():
     """Render the main header section"""
@@ -69,8 +70,34 @@ def _handle_form_submission(submit_button: bool, update_button: bool, ingest_but
     
     if update_button:
         with st.spinner("🔄 Fetching latest funding data from TechCrunch..."):
-            # TODO: Implement data ingestion logic
-            st.info("Data ingestion functionality not implemented yet")
+            try:
+                scraper = TechCrunchScraper()
+                result = scraper.run_scraper(max_pages=1)
+                
+                if result:
+                    st.success(f"✅ Successfully scraped {len(result)} funding articles from TechCrunch!")
+                    st.info("💾 Data has been saved to techcrunch_minimal.json. Use the 'Ingest' button to load it into the search system.")
+                    
+                    # Show a preview of the scraped data
+                    if len(result) > 0:
+                        st.subheader("📋 Preview of Scraped Data")
+                        for i, article in enumerate(result[:3], 1):  # Show first 3 articles
+                            with st.expander(f"{i}. {article.get('company_name', 'Unknown Company')} - {article.get('funding_amount', 'N/A')}"):
+                                st.write(f"**Company:** {article.get('company_name', 'N/A')}")
+                                st.write(f"**Funding Amount:** {article.get('funding_amount', 'N/A')}")
+                                st.write(f"**Series:** {article.get('series', 'N/A')}")
+                                st.write(f"**Sector:** {article.get('sector', 'N/A')}")
+                                if article.get('url'):
+                                    st.write(f"**Source:** [Read article]({article.get('url')})")
+                        
+                        if len(result) > 3:
+                            st.caption(f"... and {len(result) - 3} more articles")
+                else:
+                    st.warning("⚠️ No new funding data found or scraping completed with no results.")
+                    
+            except Exception as e:
+                st.error(f"❌ Error during scraping: {str(e)}")
+                st.error("Please check your internet connection and try again.")
     
     if ingest_button:
         with st.spinner("📥 Querying MongoDB database..."):
