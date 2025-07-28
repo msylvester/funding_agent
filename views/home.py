@@ -26,9 +26,10 @@ def home_page():
         current_input = st.session_state.last_submitted
         
         # Show loading animation while processing
-        with st.spinner("> Analyzing funding data..."):
-            # TODO: Implement query processing logic
-            response = f"This is a placeholder response for your query: '{current_input}'"
+        with st.spinner("Analyzing funding data..."):
+            data_service = DataService()
+            response = data_service.generate_response(current_input)
+            data_service.close()
         
         # Display the response with enhanced formatting
         st.markdown("### 📊 Results")

@@ -105,3 +105,33 @@ class DataService:
     def close(self):
         """Close database connection"""
         self.db.close_connection()
+        
+    def retrieve_documents(self, query: str, n_results: int = 3) -> dict:
+        """
+        Retrieve relevant documents from ChromaDB based on the query.
+        """
+        query_vector = self.vectorizer.transform([query]).toarray()[0].tolist()
+        result = self.chroma_collection.query(query_embeddings=[query_vector], n_results=n_results)
+        return result
+
+    def generate_response(self, query: str) -> str:
+        """
+        Implements Retrieval Augmented Generation (RAG) by retrieving relevant documents
+        and generating a response.
+        """
+        results = self.retrieve_documents(query)
+        # ChromaDB returns a list wrapping the results; extract the first list.
+        documents = results.get("documents", [[]])[0]
+        metadatas = results.get("metadatas", [[]])[0]
+        
+        context = ""
+        for doc, meta in zip(documents, metadatas):
+            context += f"\nDocument: {doc}\nMetadata: {meta}\n"
+        
+        # Placeholder for LLM integration.
+        response = (
+            f"Query: {query}\n"
+            f"Retrieved Context: {context}\n"
+            f"RAG Response: [This is a placeholder response using RAG]"
+        )
+        return response
