@@ -17,11 +17,8 @@ class DataService:
         self.document_vectors = None
         self.companies_data = []
        
-        # Initialize ChromaDB client and collection
-        self.chroma_client = chromadb.Client(Settings(
-            chroma_db_impl="duckdb+parquet",
-            persist_directory=".chromadb"
-        ))
+        # Initialize ChromaDB client and collection using new configuration
+        self.chroma_client = chromadb.Client(persist_directory=".chromadb")
         self.chroma_collection = self.chroma_client.get_or_create_collection("funding_data_embeddings")
     
     def ingest_data(self) -> Dict[str, Any]:
