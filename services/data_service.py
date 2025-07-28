@@ -110,7 +110,20 @@ class DataService:
         """
         Retrieve relevant documents from ChromaDB based on the query.
         """
-        query_vector = self.vectorizer.transform([query]).toarray()[0].tolist()
+        # Check if vectorizer is fitted, if not, try to fit it with existing data
+        try:
+            # Try to transform the query - this will fail if vectorizer isn't fitted
+            query_vector = self.vectorizer.transform([query]).toarray()[0].tolist()
+        except:
+            # If vectorizer isn't fitted, check if we have documents to fit it
+            if not self.documents:
+                # No documents available, return empty results
+                return {"documents": [[]], "metadatas": [[]], "distances": [[]]}
+            
+            # Fit the vectorizer with existing documents
+            self.vectorizer.fit(self.documents)
+            query_vector = self.vectorizer.transform([query]).toarray()[0].tolist()
+        
         result = self.chroma_collection.query(query_embeddings=[query_vector], n_results=n_results)
         return result
 
@@ -119,10 +132,21 @@ class DataService:
         Implements Retrieval Augmented Generation (RAG) by retrieving relevant documents
         and generating a response.
         """
+        # Check if we have any data in ChromaDB
+        try:
+            collection_count = self.chroma_collection.count()
+            if collection_count == 0:
+                return "No data available. Please click 'Ingest' to load data from the database first."
+        except:
+            return "No data available. Please click 'Ingest' to load data from the database first."
+        
         results = self.retrieve_documents(query)
         # ChromaDB returns a list wrapping the results; extract the first list.
         documents = results.get("documents", [[]])[0]
         metadatas = results.get("metadatas", [[]])[0]
+        
+        if not documents:
+            return "No relevant documents found for your query. Try rephrasing or check if data has been ingested."
         
         context = ""
         for doc, meta in zip(documents, metadatas):
