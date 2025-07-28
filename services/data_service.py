@@ -208,14 +208,36 @@ class DataService:
         if not documents:
             return "No relevant documents found for your query. Try rephrasing or check if data has been ingested."
         
-        context = ""
+        # Extract only company names and investors from the retrieved documents
+        companies_info = []
         for doc, meta in zip(documents, metadatas):
-            context += f"\nDocument: {doc}\nMetadata: {meta}\n"
+            # Parse the document to extract company name and investors
+            lines = doc.split('\n')
+            company_name = "Unknown"
+            investors = "Unknown"
+            funding_amount = "Unknown"
+            
+            for line in lines:
+                if line.strip().startswith("Company:"):
+                    company_name = line.replace("Company:", "").strip()
+                elif line.strip().startswith("Investors:"):
+                    investors = line.replace("Investors:", "").strip()
+                elif line.strip().startswith("Funding Amount:"):
+                    funding_amount = line.replace("Funding Amount:", "").strip()
+            
+            companies_info.append({
+                'company': company_name,
+                'investors': investors,
+                'funding_amount': funding_amount
+            })
         
-        # Placeholder for LLM integration.
-        response = (
-            f"Query: {query}\n"
-            f"Retrieved Context: {context}\n"
-            f"RAG Response: [This is a placeholder response using RAG]"
-        )
-        return response
+        # Format the response to show only relevant information
+        response_lines = [f"Query: {query}\n", "Retrieved Companies:"]
+        
+        for i, info in enumerate(companies_info, 1):
+            response_lines.append(f"{i}. {info['company']} - {info['funding_amount']}")
+            if info['investors'] and info['investors'] != "Unknown":
+                response_lines.append(f"   Investors: {info['investors']}")
+            response_lines.append("")  # Empty line for spacing
+        
+        return "\n".join(response_lines)
