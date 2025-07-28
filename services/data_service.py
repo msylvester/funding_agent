@@ -58,9 +58,6 @@ class DataService:
                 doc = f"""
                 Company: {company.get('company_name', '')}
                 Funding Amount: {company.get('funding_amount', '')}
-                Valuation: {company.get('valuation', '')}
-                Series: {company.get('series', '')}
-                Total Funding: {company.get('total_funding', '')}
                 Investors: {company.get('investors', '')}
                 Sector: {company.get('sector', '')}
                 Description: {company.get('description', '')}
