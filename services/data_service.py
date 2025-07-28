@@ -18,8 +18,11 @@ class DataService:
         self.companies_data = []
        
         # Initialize ChromaDB client and collection using new configuration
-        self.chroma_client = chromadb.Client(settings=Settings(persist_directory=".chromadb"))
+        self.chroma_client = chromadb.PersistentClient(path=".chromadb")
         self.chroma_collection = self.chroma_client.get_or_create_collection("funding_data_embeddings")
+        
+        # Load existing documents if they exist in ChromaDB
+        self._load_existing_data()
     
     def ingest_data(self) -> Dict[str, Any]:
         """
@@ -76,6 +79,15 @@ class DataService:
                 self.document_vectors = self.vectorizer.fit_transform(self.documents)
                 dense_vectors = self.document_vectors.toarray()
 
+                # Clear existing collection and add new data
+                try:
+                    # Delete the collection and recreate it to avoid duplicates
+                    self.chroma_client.delete_collection("funding_data_embeddings")
+                    self.chroma_collection = self.chroma_client.create_collection("funding_data_embeddings")
+                except:
+                    # Collection might not exist, create it
+                    self.chroma_collection = self.chroma_client.get_or_create_collection("funding_data_embeddings")
+            
                 # Store each document's embedding into ChromaDB
                 for i, doc in enumerate(self.documents):
                     self.chroma_collection.add(
@@ -101,6 +113,22 @@ class DataService:
                 'error': str(e),
                 'message': 'Failed to create document embeddings'
             }
+    
+    def _load_existing_data(self):
+        """Load existing documents from ChromaDB if available"""
+        try:
+            collection_count = self.chroma_collection.count()
+            if collection_count > 0:
+                # Get all documents from ChromaDB
+                all_data = self.chroma_collection.get()
+                if all_data and all_data.get('documents'):
+                    self.documents = all_data['documents']
+                    # Fit the vectorizer with existing documents
+                    if self.documents:
+                        self.vectorizer.fit(self.documents)
+                        print(f"Loaded {len(self.documents)} existing documents from ChromaDB")
+        except Exception as e:
+            print(f"Error loading existing data: {e}")
     
     def close(self):
         """Close database connection"""
