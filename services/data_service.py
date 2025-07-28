@@ -118,6 +118,7 @@ class DataService:
         """Load existing documents from ChromaDB if available"""
         try:
             collection_count = self.chroma_collection.count()
+            print(f'the colleciton count is {collection_count}')
             if collection_count > 0:
                 # Get all documents from ChromaDB
                 all_data = self.chroma_collection.get()
@@ -163,6 +164,7 @@ class DataService:
         # Check if we have any data in ChromaDB
         try:
             collection_count = self.chroma_collection.count()
+            print(f'the collection_count is {collection_count}')
             if collection_count == 0:
                 return "No data available. Please click 'Ingest' to load data from the database first."
         except:
