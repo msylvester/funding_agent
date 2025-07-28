@@ -18,7 +18,7 @@ class DataService:
         self.companies_data = []
        
         # Initialize ChromaDB client and collection using new configuration
-        self.chroma_client = chromadb.PersistentClient(path=".chromadb")
+        self.chroma_client = chromadb.PersistentClient(path="./chromadb_data")
         self.chroma_collection = self.chroma_client.get_or_create_collection("funding_data_embeddings")
         
         # Load existing documents if they exist in ChromaDB
@@ -79,23 +79,43 @@ class DataService:
                 self.document_vectors = self.vectorizer.fit_transform(self.documents)
                 dense_vectors = self.document_vectors.toarray()
 
-                # Clear existing collection and add new data
+                # Clear existing collection data and add new data
                 try:
-                    # Delete the collection and recreate it to avoid duplicates
-                    self.chroma_client.delete_collection("funding_data_embeddings")
-                    self.chroma_collection = self.chroma_client.create_collection("funding_data_embeddings")
-                except:
-                    # Collection might not exist, create it
+                    # Get existing collection or create new one
                     self.chroma_collection = self.chroma_client.get_or_create_collection("funding_data_embeddings")
+                    
+                    # Clear existing data in the collection
+                    existing_data = self.chroma_collection.get()
+                    if existing_data and existing_data.get('ids'):
+                        self.chroma_collection.delete(ids=existing_data['ids'])
+                        print(f"Cleared {len(existing_data['ids'])} existing documents from ChromaDB")
+                        
+                except Exception as e:
+                    print(f"Error clearing collection: {e}")
+                    # If there's an issue, try to create a fresh collection
+                    try:
+                        self.chroma_client.delete_collection("funding_data_embeddings")
+                        self.chroma_collection = self.chroma_client.create_collection("funding_data_embeddings")
+                    except:
+                        self.chroma_collection = self.chroma_client.get_or_create_collection("funding_data_embeddings")
             
                 # Store each document's embedding into ChromaDB
+                document_ids = []
                 for i, doc in enumerate(self.documents):
+                    doc_id = str(uuid.uuid4())
+                    document_ids.append(doc_id)
                     self.chroma_collection.add(
                         documents=[doc],
                         embeddings=[dense_vectors[i].tolist()],
-                        metadatas=[{"company_data": self.companies_data[i]}],
-                        ids=[str(uuid.uuid4())]
+                        metadatas=[{"company_data": str(self.companies_data[i])}],  # Convert to string for ChromaDB
+                        ids=[doc_id]
                     )
+                
+                print(f"Added {len(document_ids)} documents to ChromaDB")
+                
+                # Verify the data was added
+                verification_count = self.chroma_collection.count()
+                print(f"ChromaDB collection now contains {verification_count} documents")
 
                 return {
                     'success': True,
@@ -118,18 +138,28 @@ class DataService:
         """Load existing documents from ChromaDB if available"""
         try:
             collection_count = self.chroma_collection.count()
-            print(f'the colleciton count is {collection_count}')
+            print(f'ChromaDB collection count on init: {collection_count}')
             if collection_count > 0:
                 # Get all documents from ChromaDB
                 all_data = self.chroma_collection.get()
+                print(f"Retrieved data keys: {list(all_data.keys()) if all_data else 'None'}")
+                
                 if all_data and all_data.get('documents'):
                     self.documents = all_data['documents']
                     # Fit the vectorizer with existing documents
                     if self.documents:
                         self.vectorizer.fit(self.documents)
-                        print(f"Loaded {len(self.documents)} existing documents from ChromaDB")
+                        print(f"Loaded {len(self.documents)} existing documents from ChromaDB and fitted vectorizer")
+                    else:
+                        print("No documents found in ChromaDB data")
+                else:
+                    print("No documents key found in ChromaDB data")
+            else:
+                print("ChromaDB collection is empty")
         except Exception as e:
             print(f"Error loading existing data: {e}")
+            import traceback
+            traceback.print_exc()
     
     def close(self):
         """Close database connection"""
