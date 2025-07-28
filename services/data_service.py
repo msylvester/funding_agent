@@ -4,6 +4,9 @@ Data service layer for handling database operations
 from services.database import FundingDatabase
 from typing import List, Dict, Any, Optional
 from sklearn.feature_extraction.text import TfidfVectorizer
+import chromadb
+from chromadb.config import Settings
+import uuid
 import streamlit as st
 
 class DataService:
@@ -13,6 +16,13 @@ class DataService:
         self.documents = []
         self.document_vectors = None
         self.companies_data = []
+       
+        # Initialize ChromaDB client and collection
+        self.chroma_client = chromadb.Client(Settings(
+            chroma_db_impl="duckdb+parquet",
+            persist_directory=".chromadb"
+        ))
+        self.chroma_collection = self.chroma_client.get_or_create_collection("funding_data_embeddings")
     
     def ingest_data(self) -> Dict[str, Any]:
         """
@@ -67,9 +77,20 @@ class DataService:
             # Create TF-IDF vectors
             if self.documents:
                 self.document_vectors = self.vectorizer.fit_transform(self.documents)
+                dense_vectors = self.document_vectors.toarray()
+
+                # Store each document's embedding into ChromaDB
+                for i, doc in enumerate(self.documents):
+                    self.chroma_collection.add(
+                        documents=[doc],
+                        embeddings=[dense_vectors[i].tolist()],
+                        metadatas=[{"company_data": self.companies_data[i]}],
+                        ids=[str(uuid.uuid4())]
+                    )
+
                 return {
                     'success': True,
-                    'message': f'Successfully created embeddings for {len(self.documents)} documents'
+                    'message': f'Successfully created embeddings for {len(self.documents)} documents and stored in ChromaDB'
                 }
             else:
                 return {
