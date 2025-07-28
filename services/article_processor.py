@@ -8,9 +8,9 @@ from bs4 import BeautifulSoup
 '''
 Start of custom services
 '''
-from agents.agent_007 import is_funding_article_ai
-from agents.agent_data_struct import enhance_with_ai
-from database import FundingDatabase
+from services.agents.agent_007 import is_funding_article_ai
+from services.agents.agent_data_struct import enhance_with_ai
+from services.database import FundingDatabase
 
 
 class ArticleProcessor:
