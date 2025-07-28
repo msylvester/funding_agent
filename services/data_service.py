@@ -18,7 +18,7 @@ class DataService:
         self.companies_data = []
        
         # Initialize ChromaDB client and collection using new configuration
-        self.chroma_client = chromadb.Client(persist_directory=".chromadb")
+        self.chroma_client = chromadb.Client(settings=Settings(persist_directory=".chromadb"))
         self.chroma_collection = self.chroma_client.get_or_create_collection("funding_data_embeddings")
     
     def ingest_data(self) -> Dict[str, Any]:
