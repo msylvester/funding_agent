@@ -166,24 +166,24 @@ class DataService:
         self.db.close_connection()
         
     def retrieve_documents(self, query: str, n_results: int = 3) -> dict:
-        """
-        Retrieve relevant documents from ChromaDB based on the query.
-        """
-        # Check if vectorizer is fitted, if not, try to fit it with existing data
+        print(f"🔍 DEBUG: Query = '{query}'")
+        print(f"🔍 DEBUG: Documents count = {len(self.documents)}")
+        print(f"🔍 DEBUG: ChromaDB collection count = {self.chroma_collection.count()}")
+
+        # Check if vectorizer is fitted
         try:
-            # Try to transform the query - this will fail if vectorizer isn't fitted
             query_vector = self.vectorizer.transform([query]).toarray()[0].tolist()
-        except:
-            # If vectorizer isn't fitted, check if we have documents to fit it
-            if not self.documents:
-                # No documents available, return empty results
-                return {"documents": [[]], "metadatas": [[]], "distances": [[]]}
-            
-            # Fit the vectorizer with existing documents
-            self.vectorizer.fit(self.documents)
-            query_vector = self.vectorizer.transform([query]).toarray()[0].tolist()
-        
-        result = self.chroma_collection.query(query_embeddings=[query_vector], n_results=n_results)
+            print(f"🔍 DEBUG: Query vector created successfully, length = {len(query_vector)}")
+        except Exception as e:
+            print(f"🔍 DEBUG: Vectorizer error: {e}")
+            # ... rest of your existing code
+
+        result = self.chroma_collection.query(query_embeddings=[query_vector],
+    n_results=n_results)
+        print(f"🔍 DEBUG: ChromaDB result keys: {list(result.keys())}")
+        print(f"🔍 DEBUG: Documents returned: {len(result.get('documents', [[]])[0])}")
+        print(f"🔍 DEBUG: Distances: {result.get('distances', [[]])[0]}")
+
         return result
 
     def generate_response(self, query: str) -> str:
@@ -233,6 +233,7 @@ class DataService:
         
         # Format the response to show only relevant information
         response_lines = [f"Query: {query}\n", "Retrieved Companies:"]
+        print(f'the response lines are {response_lines}')
         
         for i, info in enumerate(companies_info, 1):
             response_lines.append(f"{i}. {info['company']} - {info['funding_amount']}")
