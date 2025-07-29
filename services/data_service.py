@@ -126,17 +126,28 @@ class DataService:
                         self.chroma_collection = self.chroma_client.get_or_create_collection("funding_data_embeddings")
             
                 # Store each document's embedding into ChromaDB
+                print(f'🔧 DEBUG: About to add {len(self.documents)} documents to ChromaDB')
                 document_ids = []
+                documents_to_add = []
+                embeddings_to_add = []
+                metadatas_to_add = []
+                
                 for i, doc in enumerate(self.documents):
-                    print(f'the doucmetns length is {len(self.documetns)}')
                     doc_id = str(uuid.uuid4())
                     document_ids.append(doc_id)
-                    self.chroma_collection.add(
-                        documents=[doc],
-                        embeddings=[dense_vectors[i].tolist()],
-                        metadatas=[{"company_data": str(self.companies_data[i])}],  # Convert to string for ChromaDB
-                        ids=[doc_id]
-                    )
+                    documents_to_add.append(doc)
+                    embeddings_to_add.append(dense_vectors[i].tolist())
+                    metadatas_to_add.append({"company_index": i, "company_name": self.companies_data[i].get('company_name', 'Unknown')})
+                    print(f'🔧 DEBUG: Prepared document {i+1}: {self.companies_data[i].get("company_name", "Unknown")}')
+                
+                # Add all documents in one batch
+                print("🔧 DEBUG: Adding documents to ChromaDB in batch...")
+                self.chroma_collection.add(
+                    documents=documents_to_add,
+                    embeddings=embeddings_to_add,
+                    metadatas=metadatas_to_add,
+                    ids=document_ids
+                )
                 
                 print(f"Added {len(document_ids)} documents to ChromaDB")
                 
@@ -155,6 +166,8 @@ class DataService:
                 }
                 
         except Exception as e:
+            print(f"❌ ERROR in embed_data: {e}")
+            traceback.print_exc()
             return {
                 'success': False,
                 'error': str(e),
