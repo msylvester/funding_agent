@@ -247,10 +247,11 @@ class DataService:
         """Close database connection"""
         self.db.close_connection()
         
-    def retrieve_documents(self, query: str, n_results: int = 3) -> dict:
+    def retrieve_documents(self, query: str, n_results: int = 3, distance_threshold: float = 1.6) -> dict:
         print(f"🔍 DEBUG: Starting document retrieval...")
         print(f"🔍 DEBUG: Query = '{query}'")
         print(f"🔍 DEBUG: Documents count = {len(self.documents)}")
+        print(f"🔍 DEBUG: Distance threshold = {distance_threshold}")
         
         try:
             collection_count = self.chroma_collection.count()
@@ -277,11 +278,40 @@ class DataService:
                 n_results=n_results
             )
             print(f"🔍 DEBUG: ChromaDB result keys: {list(result.keys())}")
-            print(f"🔍 DEBUG: Documents returned: {len(result.get('documents', [[]])[0])}")
-            print(f"🔍 DEBUG: Distances: {result.get('distances', [[]])[0]}")
-            print(f"🔍 DEBUG: Metadatas count: {len(result.get('metadatas', [[]])[0])}")
+            print(f"🔍 DEBUG: Raw documents returned: {len(result.get('documents', [[]])[0])}")
+            print(f"🔍 DEBUG: Raw distances: {result.get('distances', [[]])[0]}")
             
-            return result
+            # Filter results based on distance threshold
+            documents = result.get('documents', [[]])[0]
+            metadatas = result.get('metadatas', [[]])[0]
+            distances = result.get('distances', [[]])[0]
+            
+            # Filter by distance threshold
+            filtered_documents = []
+            filtered_metadatas = []
+            filtered_distances = []
+            
+            for i, distance in enumerate(distances):
+                if distance <= distance_threshold:
+                    filtered_documents.append(documents[i])
+                    filtered_metadatas.append(metadatas[i])
+                    filtered_distances.append(distance)
+                    print(f"🔍 DEBUG: Keeping document {i+1} with distance {distance}")
+                else:
+                    print(f"🔍 DEBUG: Filtering out document {i+1} with distance {distance} (> {distance_threshold})")
+            
+            # Return filtered results in the same format as ChromaDB
+            filtered_result = {
+                "documents": [filtered_documents],
+                "metadatas": [filtered_metadatas], 
+                "distances": [filtered_distances]
+            }
+            
+            print(f"🔍 DEBUG: Filtered documents returned: {len(filtered_documents)}")
+            print(f"🔍 DEBUG: Filtered distances: {filtered_distances}")
+            print(f"🔍 DEBUG: Filtered metadatas count: {len(filtered_metadatas)}")
+            
+            return filtered_result
         except Exception as e:
             print(f"❌ ERROR: ChromaDB query failed: {e}")
             traceback.print_exc()
