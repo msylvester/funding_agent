@@ -105,25 +105,23 @@ class DataService:
                 self.document_vectors = self.vectorizer.fit_transform(self.documents)
                 dense_vectors = self.document_vectors.toarray()
 
-                # Clear existing collection data and add new data
+                # Handle dimension mismatch by recreating collection
                 try:
-                    # Get existing collection or create new one
-                    self.chroma_collection = self.chroma_client.get_or_create_collection("funding_data_embeddings")
-                    
-                    # Clear existing data in the collection
-                    existing_data = self.chroma_collection.get()
-                    if existing_data and existing_data.get('ids'):
-                        self.chroma_collection.delete(ids=existing_data['ids'])
-                        print(f"Cleared {len(existing_data['ids'])} existing documents from ChromaDB")
-                        
-                except Exception as e:
-                    print(f"Error clearing collection: {e}")
-                    # If there's an issue, try to create a fresh collection
+                    # Always delete and recreate collection to avoid dimension mismatch
+                    print("🔧 DEBUG: Recreating ChromaDB collection to avoid dimension mismatch...")
                     try:
                         self.chroma_client.delete_collection("funding_data_embeddings")
-                        self.chroma_collection = self.chroma_client.create_collection("funding_data_embeddings")
-                    except:
-                        self.chroma_collection = self.chroma_client.get_or_create_collection("funding_data_embeddings")
+                        print("🔧 DEBUG: Deleted existing collection")
+                    except Exception as e:
+                        print(f"🔧 DEBUG: Collection didn't exist or couldn't delete: {e}")
+                    
+                    # Create fresh collection
+                    self.chroma_collection = self.chroma_client.create_collection("funding_data_embeddings")
+                    print(f"🔧 DEBUG: Created new collection with dimension {len(dense_vectors[0])}")
+                        
+                except Exception as e:
+                    print(f"❌ ERROR: Failed to recreate collection: {e}")
+                    raise
             
                 # Store each document's embedding into ChromaDB
                 print(f'🔧 DEBUG: About to add {len(self.documents)} documents to ChromaDB')
