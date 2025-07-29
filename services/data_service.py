@@ -52,16 +52,17 @@ class DataService:
         """
         Create document embeddings from company data
         """
+        print('abotu to embed')
         try:
             if not companies_data:
+                print('not companies')
                 return {
                     'success': False,
                     'message': 'No company data provided for embedding'
                 }
-            
             # Store the companies data for later use
             self.companies_data = companies_data
-            
+
             # Create documents by combining relevant fields
             self.documents = []
             for company in companies_data:
@@ -102,6 +103,7 @@ class DataService:
                 # Store each document's embedding into ChromaDB
                 document_ids = []
                 for i, doc in enumerate(self.documents):
+                    print(f'the doucmetns length is {len(self.documetns)}')
                     doc_id = str(uuid.uuid4())
                     document_ids.append(doc_id)
                     self.chroma_collection.add(
