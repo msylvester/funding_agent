@@ -53,10 +53,17 @@ class DataService:
             # Embed the data after successful retrieval
             embed_result = self.embed_data(recent_companies)
             
+            # Verify the data was actually stored
+            final_count = self.chroma_collection.count()
+            print(f"Final ChromaDB count after ingestion: {final_count}")
+            
+            # Run debug inspection
+            self.debug_chromadb_state()
+            
             return {
                 'success': True,
                 'recent_companies': recent_companies,
-                'message': f"Successfully retrieved {len(recent_companies)} recent companies and created {len(self.documents)} document embeddings",
+                'message': f"Successfully retrieved {len(recent_companies)} companies and created {final_count} document embeddings",
                 'embed_success': embed_result['success']
             }
         except Exception as e:
