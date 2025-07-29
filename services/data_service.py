@@ -192,6 +192,7 @@ class DataService:
         and generating a response.
         """
         # Check if we have any data in ChromaDB
+        print('here')
         try:
             collection_count = self.chroma_collection.count()
             print(f'the collection_count is {collection_count}')
