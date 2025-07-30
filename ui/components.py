@@ -18,11 +18,9 @@ def render_example_queries():
         <div class="example-queries">
             <div class="example-title">Try asking about:</div>
             <ul style="margin: 0; padding-left: 1.5rem;">
-                <li class="example-item">Show me all Series A rounds from the last 30 days</li>
                 <li class="example-item">Which companies raised funding in AI or ML this month?</li>
                 <li class="example-item">What are the largest funding rounds in 2024?</li>
                 <li class="example-item">Show me fintech companies that raised money recently</li>
-                <li class="example-item">Which investors participated in recent Series B rounds?</li>
             </ul>
         </div>
         """, unsafe_allow_html=True)
