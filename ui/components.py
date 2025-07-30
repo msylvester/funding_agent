@@ -155,17 +155,110 @@ def render_response_section(response: str):
     """Render the response section with formatted output"""
     st.markdown("### 🤖 AI Analysis Results")
     
-    response_container = st.container()
-    with response_container:
-        st.markdown(response)
+    # Parse the response into structured sections
+    sections = _parse_reasoning_response(response)
+    
+    # Display each section with appropriate formatting
+    for section in sections:
+        _render_section(section)
     
     st.markdown("---")
+
+def _parse_reasoning_response(response: str) -> list:
+    """
+    Parse the LLM response into structured sections
+    """
+    sections = []
+    lines = response.split('\n')
+    current_section = None
+    current_content = []
+    
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+        
+        # Detect section headers
+        if any(keyword in line.lower() for keyword in ['insights:', 'limitations', 'caveats:', 'overall']):
+            # Save previous section
+            if current_section:
+                sections.append({
+                    'title': current_section,
+                    'content': current_content
+                })
+            
+            # Start new section
+            if 'insights' in line.lower():
+                current_section = "🔍 Key Insights"
+            elif 'limitations' in line.lower() or 'caveats' in line.lower():
+                current_section = "⚠️ Limitations & Caveats"
+            elif 'overall' in line.lower():
+                current_section = "📊 Overall Assessment"
+            else:
+                current_section = line
+            
+            current_content = []
+            continue
+        
+        # Add content to current section
+        if current_section:
+            current_content.append(line)
+        else:
+            # Content before any section header
+            if not sections:
+                sections.append({
+                    'title': "📋 Analysis",
+                    'content': []
+                })
+            sections[0]['content'].append(line)
+    
+    # Add the last section
+    if current_section and current_content:
+        sections.append({
+            'title': current_section,
+            'content': current_content
+        })
+    
+    return sections
+
+def _render_section(section: dict):
+    """
+    Render a single section with proper formatting
+    """
+    st.markdown(f"## {section['title']}")
+    
+    for line in section['content']:
+        # Handle numbered insights
+        if line.startswith(tuple(f"{i}." for i in range(1, 10))):
+            if ':' in line:
+                title = line.split(':', 1)[0]
+                content = line.split(':', 1)[1].strip()
+                
+                with st.expander(f"💡 {title}", expanded=True):
+                    st.markdown(content)
+            else:
+                st.markdown(f"**{line}**")
+        
+        # Handle bullet points
+        elif line.startswith('-'):
+            st.markdown(f"• {line[1:].strip()}")
+        
+        # Handle company information (if it contains funding amounts)
+        elif any(keyword in line.lower() for keyword in ['million', 'billion', 'funding', '$']):
+            st.info(f"💰 {line}")
+        
+        # Regular content
+        else:
+            st.markdown(line)
+    
+    st.markdown("")  # Add spacing
 
 def check_and_display_response():
     """Check session state for responses and display them"""
     if hasattr(st.session_state, 'last_response') and st.session_state.last_response:
         if hasattr(st.session_state, 'last_query'):
-            st.markdown(f"**Query:** {st.session_state.last_query}")
+            st.markdown("---")
+            st.markdown(f"### 🔍 Query: *{st.session_state.last_query}*")
         render_response_section(st.session_state.last_response)
         
         # Clear the response after displaying to avoid repeated displays
