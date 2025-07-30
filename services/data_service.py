@@ -555,4 +555,7 @@ Please provide a detailed, professional response:"""
         llm_response = self._call_openrouter_llm(reasoning_prompt)
         
         print(f"🤖 DEBUG: Received LLM response with {len(llm_response)} characters")
+    
         return llm_response
+    
+    
