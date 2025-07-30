@@ -1,22 +1,23 @@
-# 💰 Funding Scraper
+# 💰 Funding Intelligence RAG
 
-A comprehensive funding data scraper and RAG (Retrieval-Augmented Generation) agent for tracking startup funding rounds from TechCrunch.
+A comprehensive RAG (Retrieval-Augmented Generation) system for analyzing startup funding data with AI-powered insights.
 
 ## ✨ Features
 
 - 🕷️ **Web Scraping**: Automated scraping of TechCrunch funding articles
-- 🤖 **AI-Powered Classification**: Smart funding article detection using OpenRouter API
-- 🧠 **RAG Agent**: Intelligent query system with TF-IDF vectorization for funding data retrieval
-- 🌐 **Streamlit Interface**: Interactive web app for querying funding data
+- 🤖 **AI-Powered Analysis**: Smart funding insights using OpenRouter API
+- 🧠 **RAG System**: Intelligent query system with ChromaDB vectorization for funding data retrieval
+- 🌐 **Streamlit Interface**: Interactive web app for querying funding data with AI reasoning
 - 📊 **MongoDB Integration**: Scalable database storage for funding data
 
 ## 📁 Project Structure
 
 ### 🎯 Main Application
-- `rag_agent.py` - 🎨 Streamlit RAG interface for querying funding data
+- `app.py` - 🎨 Streamlit RAG interface for querying funding data
 
 ### 🛠️ Services (`/services/`)
-- `techcrunch_minimal.py` - 🕷️ Main TechCrunch scraper with AI enhancement
+- `data_service.py` - 🧠 Core RAG service with ChromaDB and LLM reasoning
+- `scraper_service.py` - 🕷️ TechCrunch scraper with AI enhancement
 - `article_processor.py` - 📝 Article content processing and funding data extraction
 - `database.py` - 🗄️ MongoDB database operations and schema management
 
@@ -24,14 +25,18 @@ A comprehensive funding data scraper and RAG (Retrieval-Augmented Generation) ag
 - `agent_007.py` - 🎯 AI agent for classifying funding articles using OpenRouter API
 - `agent_data_struct.py` - 🧠 AI agent for extracting structured funding data
 
-### 📊 Data Files
-- `techcrunch_minimal.json` - 📄 Latest scraped funding data from TechCrunch
+### 🎨 UI Components (`/ui/`)
+- `components.py` - 🖼️ Reusable Streamlit UI components
+- `styles.py` - 🎨 Custom CSS styling for the interface
+
+### ⚙️ Configuration (`/config/`)
+- `settings.py` - 🔧 Application configuration and API settings
 
 ## 🚀 Setup
 
 1. **Install dependencies:**
 ```bash
-pip install streamlit pandas scikit-learn beautifulsoup4 requests numpy pymongo
+pip install streamlit pandas scikit-learn beautifulsoup4 requests numpy pymongo chromadb
 ```
 
 2. **Set OpenRouter API key for AI enhancement:**
@@ -46,28 +51,15 @@ export MONGODB_URI=mongodb://localhost:27017/
 
 ## 🎮 Usage
 
-### 🎨 Run the RAG Agent Interface
+### 🎨 Run the RAG Interface
 ```bash
-streamlit run rag_agent.py
-```
-
-### 🕷️ Run the Scraper
-```bash
-cd services
-python techcrunch_minimal.py
-```
-
-### 🗄️ Load Data to Database
-```bash
-cd services
-python load_techcrunch_to_db.py --list  # View current database
-python load_techcrunch_to_db.py         # Load new data
+streamlit run app.py
 ```
 
 ## 🔧 Key Components
 
-- **🎯 Smart Filtering**: AI-powered funding article classification
-- **🔍 Semantic Search**: TF-IDF vectorization for relevant funding round retrieval  
+- **🎯 Smart Analysis**: AI-powered funding insights with reasoning
+- **🔍 Vector Search**: ChromaDB vectorization for relevant funding round retrieval  
 - **⚡ Real-time Scraping**: Live data collection from TechCrunch funding articles
-- **🤖 AI Enhancement**: OpenRouter API integration for structured data extraction
+- **🤖 LLM Integration**: OpenRouter API integration for intelligent analysis
 - **📊 Database Integration**: MongoDB storage with comprehensive schema
