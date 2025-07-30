@@ -10,6 +10,7 @@ import uuid
 import streamlit as st
 import traceback
 import os
+from datetime import datetime
 
 class DataService:
     def __init__(self):
@@ -135,8 +136,35 @@ class DataService:
                     document_ids.append(doc_id)
                     documents_to_add.append(doc)
                     embeddings_to_add.append(dense_vectors[i].tolist())
-                    metadatas_to_add.append({"company_index": i, "company_name": self.companies_data[i].get('company_name', 'Unknown')})
-                    print(f'🔧 DEBUG: Prepared document {i+1}: {self.companies_data[i].get("company_name", "Unknown")}')
+                    
+                    # Convert date to Unix timestamp
+                    company_date = self.companies_data[i].get('date')
+                    unix_timestamp = None
+                    if company_date:
+                        try:
+                            # Handle different date formats that might come from MongoDB
+                            if isinstance(company_date, str):
+                                # Try parsing common date formats
+                                for date_format in ['%Y-%m-%d', '%Y-%m-%d %H:%M:%S', '%m/%d/%Y', '%d/%m/%Y']:
+                                    try:
+                                        parsed_date = datetime.strptime(company_date, date_format)
+                                        unix_timestamp = int(parsed_date.timestamp())
+                                        break
+                                    except ValueError:
+                                        continue
+                            elif hasattr(company_date, 'timestamp'):
+                                # If it's already a datetime object
+                                unix_timestamp = int(company_date.timestamp())
+                        except Exception as e:
+                            print(f"⚠️ WARNING: Could not parse date '{company_date}' for company {self.companies_data[i].get('company_name', 'Unknown')}: {e}")
+                    
+                    metadata = {
+                        "company_index": i, 
+                        "company_name": self.companies_data[i].get('company_name', 'Unknown'),
+                        "date_unix": unix_timestamp
+                    }
+                    metadatas_to_add.append(metadata)
+                    print(f'🔧 DEBUG: Prepared document {i+1}: {self.companies_data[i].get("company_name", "Unknown")} (date: {unix_timestamp})')
                 
                 # Add all documents in one batch
                 print("🔧 DEBUG: Adding documents to ChromaDB in batch...")
