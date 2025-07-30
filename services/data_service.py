@@ -160,9 +160,12 @@ class DataService:
                     
                     metadata = {
                         "company_index": i, 
-                        "company_name": self.companies_data[i].get('company_name', 'Unknown'),
-                        "date_unix": unix_timestamp
+                        "company_name": self.companies_data[i].get('company_name', 'Unknown')
                     }
+                    
+                    # Only add date_unix if we have a valid timestamp
+                    if unix_timestamp is not None:
+                        metadata["date_unix"] = unix_timestamp
                     metadatas_to_add.append(metadata)
                     print(f'🔧 DEBUG: Prepared document {i+1}: {self.companies_data[i].get("company_name", "Unknown")} (date: {unix_timestamp})')
                 
