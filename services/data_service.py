@@ -11,6 +11,8 @@ import streamlit as st
 import traceback
 import os
 from datetime import datetime
+import requests
+import json
 
 class DataService:
     def __init__(self):
@@ -21,6 +23,14 @@ class DataService:
         self.documents = []
         self.document_vectors = None
         self.companies_data = []
+        
+        # Load OpenRouter API configuration
+        from config.settings import API_CONFIG
+        self.openrouter_api_key = API_CONFIG['openrouter_api_key']
+        self.openrouter_base_url = API_CONFIG['openrouter_base_url']
+        self.default_model = API_CONFIG['default_model']
+        self.max_tokens = API_CONFIG['max_tokens']
+        self.temperature = API_CONFIG['temperature']
        
         # Initialize ChromaDB client and collection using new configuration
         try:
@@ -421,3 +431,128 @@ class DataService:
         final_response = "\n".join(response_lines)
         print(f"🤖 DEBUG: Final response length: {len(final_response)} characters")
         return final_response
+
+    def _call_openrouter_llm(self, prompt: str) -> str:
+        """
+        Call OpenRouter LLM API with the given prompt
+        """
+        print(f"🤖 DEBUG: Calling OpenRouter LLM with prompt length: {len(prompt)}")
+        
+        if not self.openrouter_api_key:
+            print("❌ ERROR: OpenRouter API key not found")
+            return "Error: OpenRouter API key not configured. Please set OPENROUTER_API_KEY environment variable."
+        
+        headers = {
+            "Authorization": f"Bearer {self.openrouter_api_key}",
+            "Content-Type": "application/json"
+        }
+        
+        payload = {
+            "model": self.default_model,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            "max_tokens": self.max_tokens,
+            "temperature": self.temperature
+        }
+        
+        try:
+            print(f"🤖 DEBUG: Making request to {self.openrouter_base_url}")
+            response = requests.post(
+                self.openrouter_base_url,
+                headers=headers,
+                json=payload,
+                timeout=30
+            )
+            
+            print(f"🤖 DEBUG: Response status code: {response.status_code}")
+            
+            if response.status_code == 200:
+                response_data = response.json()
+                llm_response = response_data['choices'][0]['message']['content']
+                print(f"🤖 DEBUG: LLM response length: {len(llm_response)}")
+                return llm_response
+            else:
+                print(f"❌ ERROR: OpenRouter API error: {response.status_code}")
+                print(f"❌ ERROR: Response: {response.text}")
+                return f"Error calling LLM API: {response.status_code} - {response.text}"
+                
+        except requests.exceptions.Timeout:
+            print("❌ ERROR: Request timeout")
+            return "Error: Request to LLM API timed out. Please try again."
+        except requests.exceptions.RequestException as e:
+            print(f"❌ ERROR: Request exception: {e}")
+            return f"Error: Network error when calling LLM API: {str(e)}"
+        except Exception as e:
+            print(f"❌ ERROR: Unexpected error: {e}")
+            traceback.print_exc()
+            return f"Error: Unexpected error when calling LLM API: {str(e)}"
+
+    def generate_response_with_reasoning(self, query: str) -> str:
+        """
+        Implements Retrieval Augmented Generation (RAG) with LLM reasoning by retrieving 
+        relevant documents and generating a reasoned response using OpenRouter LLM.
+        """
+        print(f"🤖 DEBUG: Starting RAG with reasoning for query: '{query}'")
+        
+        # Check if we have any data in ChromaDB
+        try:
+            collection_count = self.chroma_collection.count()
+            print(f'🤖 DEBUG: Collection count check: {collection_count}')
+            if collection_count == 0:
+                print("⚠️ DEBUG: No data in ChromaDB collection")
+                return "No data available. Please click 'Ingest' to load data from the database first."
+        except Exception as e:
+            print(f"❌ ERROR: Failed to check collection count: {e}")
+            return "Error checking data availability. Please try again or contact support."
+        
+        print("🤖 DEBUG: Retrieving relevant documents...")
+        results = self.retrieve_documents(query)
+        
+        # ChromaDB returns a list wrapping the results; extract the first list.
+        documents = results.get("documents", [[]])[0]
+        metadatas = results.get("metadatas", [[]])[0]
+        distances = results.get("distances", [[]])[0]
+        
+        print(f"🤖 DEBUG: Retrieved {len(documents)} documents")
+        
+        if not documents:
+            print("⚠️ DEBUG: No documents found for query")
+            return "No relevant documents found for your query. Try rephrasing or check if data has been ingested."
+        
+        # Create context from retrieved documents
+        context_parts = []
+        for i, (doc, meta, distance) in enumerate(zip(documents, metadatas, distances)):
+            print(f"🤖 DEBUG: Processing document {i+1} with distance {distance}")
+            context_parts.append(f"Document {i+1} (relevance: {1-distance:.3f}):\n{doc}")
+        
+        context = "\n\n".join(context_parts)
+        
+        # Create reasoning prompt
+        reasoning_prompt = f"""You are an expert analyst specializing in startup funding and venture capital. 
+
+Based on the following funding data retrieved from our database, please provide a comprehensive and insightful answer to this question: "{query}"
+
+RETRIEVED FUNDING DATA:
+{context}
+
+INSTRUCTIONS:
+1. Analyze the retrieved data carefully
+2. Provide specific details about companies, funding amounts, investors, and dates when available
+3. If the query asks about time periods (like "last 7 days"), note any limitations in the data
+4. Organize your response clearly with bullet points or numbered lists when appropriate
+5. Include relevant insights about funding trends, sectors, or investor patterns if applicable
+6. If the data is limited or doesn't fully answer the question, acknowledge this
+
+Please provide a detailed, professional response:"""
+
+        print(f"🤖 DEBUG: Created reasoning prompt with {len(reasoning_prompt)} characters")
+        
+        # Call LLM for reasoning
+        llm_response = self._call_openrouter_llm(reasoning_prompt)
+        
+        print(f"🤖 DEBUG: Received LLM response with {len(llm_response)} characters")
+        return llm_response

@@ -63,8 +63,21 @@ def render_search_form():
 def _handle_form_submission(submit_button: bool, update_button: bool, ingest_button: bool, user_input: str):
     """Handle form submission logic"""
     if submit_button and user_input:
-        # Store the input in session state to process after form submission
-        st.session_state.last_submitted = user_input
+        # Process the query with LLM reasoning
+        with st.spinner("🤖 Analyzing funding data with AI reasoning..."):
+            data_service = DataService()
+            try:
+                response = data_service.generate_response_with_reasoning(user_input)
+                
+                # Store both query and response in session state
+                st.session_state.last_query = user_input
+                st.session_state.last_response = response
+                
+            except Exception as e:
+                st.error(f"❌ Error processing query: {str(e)}")
+                st.session_state.last_response = f"Error: {str(e)}"
+            finally:
+                data_service.close()
     
     if update_button:
         with st.spinner("🔄 Fetching latest funding data from TechCrunch..."):
@@ -140,13 +153,25 @@ def _handle_form_submission(submit_button: bool, update_button: bool, ingest_but
 
 def render_response_section(response: str):
     """Render the response section with formatted output"""
-    st.markdown("### 📊 Results")
+    st.markdown("### 🤖 AI Analysis Results")
     
     response_container = st.container()
     with response_container:
-        st.info(response)
+        st.markdown(response)
     
     st.markdown("---")
+
+def check_and_display_response():
+    """Check session state for responses and display them"""
+    if hasattr(st.session_state, 'last_response') and st.session_state.last_response:
+        if hasattr(st.session_state, 'last_query'):
+            st.markdown(f"**Query:** {st.session_state.last_query}")
+        render_response_section(st.session_state.last_response)
+        
+        # Clear the response after displaying to avoid repeated displays
+        del st.session_state.last_response
+        if hasattr(st.session_state, 'last_query'):
+            del st.session_state.last_query
 
 def render_loading_spinner(message: str = "Processing..."):
     """Render a loading spinner with custom message"""
