@@ -24,7 +24,7 @@ class DataService:
         
         # Load OpenRouter API configuration
         from config.settings import API_CONFIG
-        from services.agents.agentRAG import RAGAgent
+        from services.agents.agent_rag import RAGAgent
         
         # Initialize RAG Agent
         self.rag_agent = RAGAgent(
