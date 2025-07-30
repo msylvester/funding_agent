@@ -1,6 +1,11 @@
 """
 Application configuration settings
 """
+import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Streamlit App Configuration
 APP_CONFIG = {
@@ -20,6 +25,7 @@ DATABASE_CONFIG = {
 # API Configuration
 API_CONFIG = {
     'openrouter_base_url': 'https://openrouter.ai/api/v1/chat/completions',
+    'openrouter_api_key': os.getenv('OPENROUTER_API_KEY'),
     'default_model': 'anthropic/claude-3-haiku',
     'max_tokens': 500,
     'temperature': 0.1
