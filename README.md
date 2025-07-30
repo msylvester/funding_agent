@@ -2,6 +2,12 @@
 
 A comprehensive RAG (Retrieval-Augmented Generation) system for analyzing startup funding data with AI-powered insights.
 
+
+<figure>
+  <img src="images/home_.png" alt="Funding Intelligence RAG Home Screen" width="600">
+  <figcaption><strong>Figure 1:</strong> Home screen of the Funding Intelligence RAG Streamlit app.</figcaption>
+</figure>
+
 ## ✨ Features
 
 - 🕷️ **Web Scraping**: Automated scraping of TechCrunch funding articles
@@ -14,6 +20,13 @@ A comprehensive RAG (Retrieval-Augmented Generation) system for analyzing startu
 
 ### 🎯 Main Application
 - `app.py` - 🎨 Streamlit RAG interface for querying funding data
+
+<figure>
+  <img src="images/results.png" alt="Funding Intelligence RAG Query Results" width="600">
+  <figcaption><strong>Figure 2:</strong> Example of AI-powered funding query results.</figcaption>
+</figure>
+
+
 
 ### 🛠️ Services (`/services/`)
 - `data_service.py` - 🧠 Core RAG service with ChromaDB and LLM reasoning
