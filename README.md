@@ -24,6 +24,7 @@ A comprehensive RAG (Retrieval-Augmented Generation) system for analyzing startu
 ### 🤖 AI Agents (`/services/agents/`)
 - `agent_007.py` - 🎯 AI agent for classifying funding articles using OpenRouter API
 - `agent_data_struct.py` - 🧠 AI agent for extracting structured funding data
+- `agent_rag.py` - 🤖 RAG agent for LLM reasoning and response generation
 
 ### 🎨 UI Components (`/ui/`)
 - `components.py` - 🖼️ Reusable Streamlit UI components
