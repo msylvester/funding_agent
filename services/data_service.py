@@ -24,11 +24,16 @@ class DataService:
         
         # Load OpenRouter API configuration
         from config.settings import API_CONFIG
-        self.openrouter_api_key = API_CONFIG['openrouter_api_key']
-        self.openrouter_base_url = API_CONFIG['openrouter_base_url']
-        self.default_model = API_CONFIG['default_model']
-        self.max_tokens = API_CONFIG['max_tokens']
-        self.temperature = API_CONFIG['temperature']
+        from services.agents.agentRAG import RAGAgent
+        
+        # Initialize RAG Agent
+        self.rag_agent = RAGAgent(
+            openrouter_api_key=API_CONFIG['openrouter_api_key'],
+            openrouter_base_url=API_CONFIG['openrouter_base_url'],
+            default_model=API_CONFIG['default_model'],
+            max_tokens=API_CONFIG['max_tokens'],
+            temperature=API_CONFIG['temperature']
+        )
        
         # Initialize ChromaDB client and collection using new configuration
         try:
