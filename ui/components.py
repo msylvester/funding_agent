@@ -69,13 +69,13 @@ def _handle_form_submission(submit_button: bool, update_button: bool, ingest_but
             try:
                 response = data_service.generate_response_with_reasoning(user_input)
                 
-                # Store both query and response in session state
-                st.session_state.last_query = user_input
-                st.session_state.last_response = response
+                # Display the response immediately
+                st.markdown("---")
+                st.markdown(f"### 🔍 Query: *{user_input}*")
+                render_response_section(response)
                 
             except Exception as e:
                 st.error(f"❌ Error processing query: {str(e)}")
-                st.session_state.last_response = f"Error: {str(e)}"
             finally:
                 data_service.close()
     
