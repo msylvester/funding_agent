@@ -115,16 +115,17 @@ def apply_custom_styles():
     }
     
     /* Sidebar styling */
-    .css-1d391kg {
-        background-color: #f8f9fa;
+    section[data-testid="stSidebar"] {
+        background-color: #f8f9fa !important;
     }
-    
-    .css-1lcbmhc {
-        background-color: #f8f9fa;
+
+    section[data-testid="stSidebar"] h1 {
+        color: #2a5298;
+        text-align: center;
     }
     
     /* Navigation radio buttons */
-    .stRadio > div {
+    section[data-testid="stSidebar"] .stRadio > div {
         background-color: #2a5298 !important;
         padding: 1rem;
         border-radius: 8px;
@@ -132,26 +133,15 @@ def apply_custom_styles():
         border: none;
     }
     
-    /* Radio button labels */
-    .stRadio > div > label > div {
+    section[data-testid="stSidebar"] .stRadio > div > label > div {
         background-color: transparent !important;
     }
     
-    /* Radio button container */
-    .stRadio {
-        background-color: transparent !important;
-    }
-    
-    .stRadio > div > label {
+    section[data-testid="stSidebar"] .stRadio > div > label {
         font-size: 1.1rem;
         font-weight: 500;
         padding: 0.5rem 0;
-    }
-    
-    /* Sidebar title */
-    .css-1lcbmhc h1 {
-        color: #2a5298;
-        text-align: center;
+        color: white !important;
     }
     
     /* Welcome page animations */

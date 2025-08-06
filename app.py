@@ -6,6 +6,7 @@ import streamlit as st
 from config.settings import APP_CONFIG
 from views.home import home_page
 from views.funding import funding_page
+from views.opensource import opensource_page
 
 def main():
     """Main application entry point"""
@@ -26,7 +27,7 @@ def main():
         # Navigation options with radio buttons for better UX
         page = st.radio(
             "Choose a page:",
-            ["🏠 Home", "💰 Funding"],
+            ["🏠 Home", "💰 Funding", "🔓 Open Source"],
             index=0,
             label_visibility="collapsed"
         )
@@ -40,6 +41,8 @@ def main():
         home_page()
     elif page == "💰 Funding":
         funding_page()
+    elif page == "🔓 Open Source":
+        opensource_page()
 
 if __name__ == "__main__":
     main()

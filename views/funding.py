@@ -7,7 +7,6 @@ def funding_page():
     """Funding Intelligence RAG page"""
     
     # Apply custom CSS styling
-    apply_custom_styles()
     
     # Render header section
     render_header()
