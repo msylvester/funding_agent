@@ -125,7 +125,7 @@ def apply_custom_styles():
     
     /* Navigation radio buttons */
     .stRadio > div {
-        background-color: #f8f9fa !important;
+        background-color: #2a5298 !important;
         padding: 1rem;
         border-radius: 8px;
         box-shadow: none;
