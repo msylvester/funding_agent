@@ -113,5 +113,48 @@ def apply_custom_styles():
         color: #1e3c72;
         text-decoration: underline;
     }
+    
+    /* Sidebar styling */
+    .css-1d391kg {
+        background-color: #f8f9fa;
+    }
+    
+    .css-1lcbmhc {
+        background-color: #f8f9fa;
+    }
+    
+    /* Navigation radio buttons */
+    .stRadio > div {
+        background-color: white;
+        padding: 1rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .stRadio > div > label {
+        font-size: 1.1rem;
+        font-weight: 500;
+        padding: 0.5rem 0;
+    }
+    
+    /* Sidebar title */
+    .css-1lcbmhc h1 {
+        color: #2a5298;
+        text-align: center;
+    }
+    
+    /* Welcome page animations */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .welcome-container {
+        animation: fadeIn 1s ease-out;
+    }
+    
+    .feature-cards {
+        animation: fadeIn 1.5s ease-out;
+    }
     </style>
     """, unsafe_allow_html=True)

@@ -9,10 +9,10 @@ load_dotenv()
 
 # Streamlit App Configuration
 APP_CONFIG = {
-    'page_title': 'Funding Intelligence RAG',
-    'page_icon': '💰',
+    'page_title': 'Krystal Ball Z - Funding Intelligence',
+    'page_icon': '🔮',
     'layout': 'wide',
-    'sidebar_state': 'collapsed'
+    'sidebar_state': 'expanded'
 }
 
 # Database Configuration
