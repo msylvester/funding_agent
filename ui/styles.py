@@ -125,10 +125,21 @@ def apply_custom_styles():
     
     /* Navigation radio buttons */
     .stRadio > div {
-        background-color: #f8f9fa;
+        background-color: #f8f9fa !important;
         padding: 1rem;
         border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        box-shadow: none;
+        border: none;
+    }
+    
+    /* Radio button labels */
+    .stRadio > div > label > div {
+        background-color: transparent !important;
+    }
+    
+    /* Radio button container */
+    .stRadio {
+        background-color: transparent !important;
     }
     
     .stRadio > div > label {
