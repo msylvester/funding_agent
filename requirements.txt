@@ -1,0 +1,27 @@
+# Core dependencies
+streamlit>=1.28.0
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+pandas>=2.0.0
+numpy>=1.24.0
+python-dotenv>=1.0.0
+
+# Database dependencies
+pymongo>=4.5.0
+chromadb>=0.4.0
+
+# Web scraping and parsing dependencies
+lxml>=4.9.0
+html5lib>=1.1
+
+# AI/ML and NLP dependencies
+sentence-transformers>=2.2.0
+scikit-learn>=1.3.0
+transformers>=4.30.0
+torch>=2.0.0
+
+# Logging and development dependencies
+logging>=0.4.9.6
+
+# Additional utilities
+typing-extensions>=4.7.0
