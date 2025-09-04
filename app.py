@@ -7,6 +7,8 @@ from config.settings import APP_CONFIG
 from views.home import home_page
 from views.funding import funding_page
 from views.opensource import opensource_page
+from views.huggingface import huggingface_page
+from views.hackernews import hackernews_page
 
 def main():
     """Main application entry point"""
@@ -27,7 +29,7 @@ def main():
         # Navigation options with radio buttons for better UX
         page = st.radio(
             "Choose a page:",
-            ["🏠 Home", "💰 Funding", "🔓 Open Source"],
+            ["🏠 Home", "💰 Funding", "🔓 Open Source", "🤗 Hugging Face", "📰 Hacker News"],
             index=0,
             label_visibility="collapsed"
         )
@@ -43,6 +45,10 @@ def main():
         funding_page()
     elif page == "🔓 Open Source":
         opensource_page()
+    elif page == "🤗 Hugging Face":
+        huggingface_page()
+    elif page == "📰 Hacker News":
+        hackernews_page()
 
 if __name__ == "__main__":
     main()

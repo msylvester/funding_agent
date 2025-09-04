@@ -9,7 +9,7 @@ from bs4 import BeautifulSoup
 Start of custom services
 '''
 from services.agents.agent_007 import is_funding_article_ai
-from services.agents.agent_data_struct import enhance_with_ai
+from services.agents.agent_blog_data_struct import enhance_with_ai
 from services.database import FundingDatabase
 
 
@@ -100,7 +100,7 @@ class ArticleProcessor:
         print(f"Found {len(articles)} articles on page")
         return articles
     
-    def scrape_article_content(self, url):
+    def scrape_article_content(self, url, auto_save=True):
         """Scrape individual article content"""
         try:
             response = self.session.get(url, timeout=10)
@@ -122,9 +122,19 @@ class ArticleProcessor:
                     title = title_element.get_text(strip=True)
                     break
             
-            # Extract content
+            # Extract content with more comprehensive selectors
             content = ""
-            content_selectors = ['.entry-content', '[class*="content"]', '.article-content']
+            content_selectors = [
+                '.entry-content', 
+                '[class*="content"]', 
+                '.article-content',
+                'main',
+                'article', 
+                '[class*="post"]',
+                '[class*="blog"]',
+                '.prose',
+                '[role="main"]'
+            ]
             
             for selector in content_selectors:
                 content_element = soup.select_one(selector)
@@ -133,20 +143,161 @@ class ArticleProcessor:
                     for script in content_element(["script", "style"]):
                         script.decompose()
                     content = content_element.get_text(strip=True)
+                    print(f"Content extracted using selector '{selector}': {len(content)} characters")
                     break
             
-            # Extract date
+            # Fallback: try to get content from body if no specific content area found
+            if not content:
+                body = soup.find('body')
+                if body:
+                    # Remove navigation, footer, sidebar elements
+                    for element in body(['nav', 'footer', 'aside', 'header', 'script', 'style']):
+                        element.decompose()
+                    content = body.get_text(strip=True)
+                    print(f"Content extracted using body fallback: {len(content)} characters")
+            
+            print(f"Final content preview (first 200 chars): {content[:200]}...")
+            
+            # Extract date with multiple strategies
             date = ""
+            
+            # Strategy 1: Look for <time> element
             date_element = soup.find('time')
             if date_element:
                 date = date_element.get('datetime') or date_element.get_text(strip=True)
+                print(f"Date extracted from <time> element: {date}")
+            
+            # Strategy 2: Look for comprehensive date selectors
+            if not date:
+                date_selectors = [
+                    # Generic class patterns (case-insensitive)
+                    '[class*="date" i]',
+                    '[class*="Date" i]', 
+                    '[class*="publish" i]',
+                    '[class*="Publish" i]',
+                    '[class*="time" i]',
+                    '[class*="Time" i]',
+                    
+                    # Specific element types with date classes
+                    'p[class*="date" i]',
+                    'p[class*="Date" i]', 
+                    'p[class*="publish" i]',
+                    'p[class*="Publish" i]',
+                    'span[class*="date" i]',
+                    'span[class*="Date" i]',
+                    'div[class*="date" i]',
+                    'div[class*="Date" i]',
+                    
+                    # Common class names
+                    '.post-date',
+                    '.publish-date', 
+                    '.article-date',
+                    '.published-date',
+                    '.date-published',
+                    '.post-meta',
+                    '.article-meta',
+                    '.entry-date',
+                    '.timestamp'
+                ]
+                
+                for selector in date_selectors:
+                    date_element = soup.select_one(selector)
+                    if date_element:
+                        date = date_element.get_text(strip=True)
+                        print(f"Date extracted from selector '{selector}': {date}")
+                        break
+            
+            # Strategy 3: Look for structured data and meta tags
+            if not date:
+                # First try JSON-LD structured data
+                json_ld_scripts = soup.find_all('script', type='application/ld+json')
+                for script in json_ld_scripts:
+                    try:
+                        import json
+                        data = json.loads(script.string)
+                        
+                        # Handle single object or array
+                        if isinstance(data, list):
+                            data = data[0] if data else {}
+                        
+                        # Look for common date fields
+                        date_fields = ['datePublished', 'publishedDate', 'dateCreated', 'date']
+                        for field in date_fields:
+                            if field in data:
+                                date = data[field]
+                                print(f"Date extracted from JSON-LD '{field}': {date}")
+                                break
+                        
+                        if date:
+                            break
+                            
+                    except (json.JSONDecodeError, AttributeError, TypeError):
+                        continue
+                
+                # Then try meta tags if JSON-LD didn't work
+                if not date:
+                    meta_selectors = [
+                        'meta[property="article:published_time"]',
+                        'meta[property="article:published"]',
+                        'meta[name="publish-date"]',
+                        'meta[name="date"]',
+                        'meta[name="publishdate"]',
+                        'meta[name="DC.date"]',
+                        'meta[name="dcterms.created"]',
+                        'meta[property="og:updated_time"]',
+                        'meta[name="twitter:data1"]'
+                    ]
+                    
+                    for selector in meta_selectors:
+                        meta_element = soup.select_one(selector)
+                        if meta_element:
+                            date = meta_element.get('content', '')
+                            print(f"Date extracted from meta tag '{selector}': {date}")
+                            break
+            
+            # Strategy 4: Regex pattern matching in content
+            if not date:
+                import re
+                
+                # Search in a focused area first (title + first 1000 chars)
+                search_text = f"{title} {content[:1000]}"
+                
+                date_patterns = [
+                    # Full month names: "September 3, 2025", "Sep 3, 2025"
+                    r'\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4}\b',
+                    r'\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},?\s+\d{4}\b',
+                    
+                    # Numeric formats: "2025-09-03", "09/03/2025", "03/09/2025"
+                    r'\b\d{4}-\d{2}-\d{2}\b',
+                    r'\b\d{1,2}/\d{1,2}/\d{4}\b',
+                    
+                    # European format: "3 September 2025"
+                    r'\b\d{1,2}\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4}\b',
+                    r'\b\d{1,2}\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4}\b'
+                ]
+                
+                for pattern in date_patterns:
+                    match = re.search(pattern, search_text, re.IGNORECASE)
+                    if match:
+                        date = match.group(0)
+                        print(f"Date extracted from regex pattern '{pattern}': {date}")
+                        break
+            
+            # Strategy 5: Date normalization and formatting
+            if date:
+                date = self._normalize_date(date)
+                print(f"Normalized date: '{date}'")
+            
+            print(f"Final extracted date: '{date}'")
             
             # Try AI enhancement first, fall back to regex if needed
             if self.openrouter_api_key:
+                print(f"ArticleProcessor: Calling AI with title='{title}' and {len(content)} chars of content")
                 ai_funding_details = enhance_with_ai(title, content, self.openrouter_api_key)
+                print(f"ArticleProcessor: AI returned: {ai_funding_details}")
                 if ai_funding_details and ai_funding_details.get('company_name') != 'Not specified':
                     article_data = {
-                        'source': 'TechCrunch',
+                        'source': 'Blog',
                         'title': title,
                         'url': url,
                         'date': date,
@@ -156,12 +307,15 @@ class ArticleProcessor:
                     }
                     
                     # Write successfully processed company to database
-                    self.write_company_to_db(article_data)
+                    if auto_save:
+                        self.write_company_to_db(article_data)
                     
                     return article_data
             
             # Fallback to regex extraction
+            print(f"ArticleProcessor: AI failed, falling back to regex extraction")
             funding_details = self.extract_funding_details(title, content)
+            print(f"ArticleProcessor: Regex extracted: {funding_details}")
             
             article_data = {
                 'source': 'TechCrunch',
@@ -174,7 +328,7 @@ class ArticleProcessor:
             }
             
             # Write to database if we have valid funding data
-            if self.is_valid_funding_data(funding_details):
+            if auto_save and self.is_valid_funding_data(funding_details):
                 self.write_company_to_db(article_data)
             
             return article_data
@@ -245,6 +399,58 @@ class ArticleProcessor:
         has_company = funding_details.get('company_name', 'Not specified') != 'Not specified'
         has_amount = funding_details.get('funding_amount', 'Not specified') != 'Not specified'
         return has_company and has_amount
+
+    def _normalize_date(self, date_str):
+        """Normalize various date formats to a consistent format"""
+        if not date_str or date_str.strip() == '':
+            return ''
+        
+        try:
+            from datetime import datetime
+            import re
+            
+            # Clean up the date string
+            date_str = date_str.strip()
+            
+            # Remove common prefixes/suffixes
+            date_str = re.sub(r'^(Published|Posted|Date)(\s+ON)?\s*:?\s*', '', date_str, flags=re.IGNORECASE)
+            date_str = re.sub(r'^(PUBLISHED|POSTED|DATE)(\s+ON)?\s*', '', date_str, flags=re.IGNORECASE)
+            date_str = re.sub(r'\s*(UTC|GMT|EST|PST).*$', '', date_str, flags=re.IGNORECASE)
+            
+            # Try to parse various formats
+            date_formats = [
+                '%B %d, %Y',          # September 3, 2025
+                '%b %d, %Y',          # Sep 3, 2025  
+                '%Y-%m-%d',           # 2025-09-03
+                '%m/%d/%Y',           # 09/03/2025
+                '%d/%m/%Y',           # 03/09/2025
+                '%d %B %Y',           # 3 September 2025
+                '%d %b %Y',           # 3 Sep 2025
+                '%Y-%m-%dT%H:%M:%S',  # ISO format
+                '%Y-%m-%dT%H:%M:%SZ', # ISO with Z
+            ]
+            
+            for fmt in date_formats:
+                try:
+                    parsed_date = datetime.strptime(date_str, fmt)
+                    # Return in a consistent format: "Sep 3, 2025"
+                    return parsed_date.strftime('%b %d, %Y')
+                except ValueError:
+                    continue
+            
+            # If no format matches, try to extract just the date part from complex strings
+            # Look for recognizable date patterns
+            import re
+            date_match = re.search(r'\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4}\b', date_str, re.IGNORECASE)
+            if date_match:
+                return date_match.group(0)
+            
+            # If all else fails, return cleaned original
+            return date_str
+            
+        except Exception as e:
+            print(f"Date normalization error: {e}")
+            return date_str
 
     def write_company_to_db(self, company_data):
         """
