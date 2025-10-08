@@ -9,6 +9,10 @@ from typing import Annotated, List, Dict, Any
 from langgraph.graph.message import add_messages
 from services.open_source_data import OpenSourceDataService
 from services.agents.open_source_agent import OpenSourceAgent
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from github_trending import GitHubTrendingScraper
 import logging
 
 logger = logging.getLogger(__name__)
@@ -32,14 +36,14 @@ def fetch_trending_node(state: GitHubState) -> Dict[str, Any]:
     Runs in parallel with fetch_awesome_node
     """
     logger.info("🔄 Fetching trending repositories...")
-    service = OpenSourceDataService()
+    scraper = GitHubTrendingScraper()
     params = state.get('query_params', {})
 
     # Extract parameters
     language = params.get('language')
     time_range = params.get('time_range', 'daily')
 
-    repos = service.get_trending_repositories(
+    repos = scraper.scrape_trending(
         language=language,
         time_range=time_range
     )
