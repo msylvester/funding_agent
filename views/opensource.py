@@ -48,7 +48,7 @@ def opensource_page():
                     with st.expander(f"⭐ #{i} - {repo['name']} ({repo['stars']:,} stars)", expanded=(i <= 3)):
                         col_a, col_b = st.columns([3, 1])
                         with col_a:
-                            st.write(f"**Description:** {repo.get('description', 'No description')[:200]}")
+                            st.write(f"**Description:** {(repo.get('description') or 'No description')[:200]}")
                             if 'ai_reasoning' in repo:
                                 st.info(f"💡 **Why it's must-see:** {repo['ai_reasoning']}")
                         with col_b:
@@ -62,6 +62,7 @@ def opensource_page():
                 st.warning("No must-see repositories selected")
 
             # Section 2: Ecosystem Analysis
+            '''
             st.markdown("---")
             st.markdown("## 📊 Ecosystem Analysis")
 
@@ -94,7 +95,7 @@ def opensource_page():
                         st.markdown(topics_str)
                     else:
                         st.write("No topic data")
-
+'''
             # Section 3: All Trending Repositories
             st.markdown("---")
             st.markdown("## 📈 All Trending Repositories")

@@ -100,51 +100,51 @@ def enrich_details_node(state: GitHubState) -> Dict[str, Any]:
     return {"enriched_repos": enriched}
 
 
-def analyze_trends_node(state: GitHubState) -> Dict[str, Any]:
-    """
-    Analyze ecosystem trends using statistical methods
-    Uses enriched repos if available, otherwise uses basic trending repos
-    """
-    logger.info("🔄 Analyzing ecosystem trends...")
+# def analyze_trends_node(state: GitHubState) -> Dict[str, Any]:
+#     """
+#     Analyze ecosystem trends using statistical methods
+#     Uses enriched repos if available, otherwise uses basic trending repos
+#     """
+#     logger.info("🔄 Analyzing ecosystem trends...")
 
-    # Use enriched repos if available, otherwise fall back to trending repos
-    repos = state.get('enriched_repos', state.get('trending_repos', []))
+#     # Use enriched repos if available, otherwise fall back to trending repos
+#     repos = state.get('enriched_repos', state.get('trending_repos', []))
 
-    if not repos:
-        logger.warning("⚠️ No repositories to analyze")
-        return {"analysis": {}}
+#     if not repos:
+#         logger.warning("⚠️ No repositories to analyze")
+#         return {"analysis": {}}
 
-    # Statistical analysis
-    from collections import Counter
+#     # Statistical analysis
+#     from collections import Counter
 
-    languages = [r.get('language') for r in repos if r.get('language')]
-    topics = []
-    for r in repos:
-        topics.extend(r.get('topics', []))
+#     languages = [r.get('language') for r in repos if r.get('language')]
+#     topics = []
+#     for r in repos:
+#         topics.extend(r.get('topics', []))
 
-    total_stars = sum(r.get('stars', 0) for r in repos)
-    avg_stars = total_stars // len(repos) if repos else 0
+#     total_stars = sum(r.get('stars', 0) for r in repos)
+#     avg_stars = total_stars // len(repos) if repos else 0
 
-    language_counts = Counter(languages)
-    topic_counts = Counter(topics)
+#     language_counts = Counter(languages)
+#     topic_counts = Counter(topics)
 
-    analysis = {
-        "total_repos_analyzed": len(repos),
-        "trending_languages": [
-            {"language": lang, "count": count}
-            for lang, count in language_counts.most_common(5)
-        ],
-        "hot_topics": [
-            {"topic": topic, "count": count}
-            for topic, count in topic_counts.most_common(10)
-        ],
-        "average_stars": avg_stars,
-        "total_stars": total_stars,
-        "summary": f"Analyzed {len(repos)} repositories. Top language: {language_counts.most_common(1)[0][0] if language_counts else 'N/A'}"
-    }
+#     analysis = {
+#         "total_repos_analyzed": len(repos),
+#         "trending_languages": [
+#             {"language": lang, "count": count}
+#             for lang, count in language_counts.most_common(5)
+#         ],
+#         "hot_topics": [
+#             {"topic": topic, "count": count}
+#             for topic, count in topic_counts.most_common(10)
+#         ],
+#         "average_stars": avg_stars,
+#         "total_stars": total_stars,
+#         "summary": f"Analyzed {len(repos)} repositories. Top language: {language_counts.most_common(1)[0][0] if language_counts else 'N/A'}"
+#     }
 
-    logger.info(f"✅ Analysis complete: {analysis['summary']}")
-    return {"analysis": analysis}
+#     logger.info(f"✅ Analysis complete: {analysis['summary']}")
+#     return {"analysis": analysis}
 
 
 def select_must_see_node(state: GitHubState) -> Dict[str, Any]:
@@ -201,7 +201,7 @@ def create_github_workflow() -> StateGraph:
     Build the LangGraph workflow for GitHub data processing
 
     Graph structure:
-        START → fetch_trending (parallel) → should_enrich? → [enrich_details] → analyze_trends → select_must_see → END
+        START → fetch_trending (parallel) → should_enrich? → [enrich_details] → select_must_see → END
               → fetch_awesome  (parallel) ────────────────────────────────────┘
 
     Returns:
@@ -213,7 +213,7 @@ def create_github_workflow() -> StateGraph:
     graph.add_node("fetch_trending", fetch_trending_node)
     graph.add_node("fetch_awesome", fetch_awesome_node)
     graph.add_node("enrich_details", enrich_details_node)
-    graph.add_node("analyze_trends", analyze_trends_node)
+    # graph.add_node("analyze_trends", analyze_trends_node)
     graph.add_node("select_must_see", select_must_see_node)
 
     # Define parallel entry points
@@ -226,13 +226,13 @@ def create_github_workflow() -> StateGraph:
         should_enrich,
         {
             "enrich": "enrich_details",
-            "skip_enrich": "analyze_trends"
+            "skip_enrich": "select_must_see"
         }
     )
 
     # Continue flow after enrichment
-    graph.add_edge("enrich_details", "analyze_trends")
-    graph.add_edge("analyze_trends", "select_must_see")
+    graph.add_edge("enrich_details", "select_must_see")
+    # graph.add_edge("analyze_trends", "select_must_see")
 
     # Awesome lists join back to main flow (not blocking)
     # They're available in state but don't gate the workflow
@@ -306,19 +306,19 @@ if __name__ == "__main__":
     print(f"⭐ Awesome Lists: {len(result['awesome_lists'])}")
     print(f"🔍 Enriched Repositories: {len(result['enriched_repos'])}")
 
-    print("\n📉 ECOSYSTEM ANALYSIS")
-    analysis = result['analysis']
-    print(f"  Total analyzed: {analysis.get('total_repos_analyzed', 0)}")
-    print(f"  Average stars: {analysis.get('average_stars', 0)}")
-    print(f"  Summary: {analysis.get('summary', 'N/A')}")
+    # print("\n📉 ECOSYSTEM ANALYSIS")
+    # analysis = result['analysis']
+    # print(f"  Total analyzed: {analysis.get('total_repos_analyzed', 0)}")
+    # print(f"  Average stars: {analysis.get('average_stars', 0)}")
+    # print(f"  Summary: {analysis.get('summary', 'N/A')}")
 
-    print("\n  Top Languages:")
-    for lang_data in analysis.get('trending_languages', [])[:3]:
-        print(f"    - {lang_data['language']}: {lang_data['count']} repos")
+    # print("\n  Top Languages:")
+    # for lang_data in analysis.get('trending_languages', [])[:3]:
+    #     print(f"    - {lang_data['language']}: {lang_data['count']} repos")
 
-    print("\n  Hot Topics:")
-    for topic_data in analysis.get('hot_topics', [])[:5]:
-        print(f"    - {topic_data['topic']}: {topic_data['count']} repos")
+    # print("\n  Hot Topics:")
+    # for topic_data in analysis.get('hot_topics', [])[:5]:
+    #     print(f"    - {topic_data['topic']}: {topic_data['count']} repos")
 
     print("\n🌟 MUST-SEE REPOSITORIES\n")
     for i, repo in enumerate(result['must_see_repos'], 1):
