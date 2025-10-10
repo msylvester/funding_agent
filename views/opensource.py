@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 from ui.styles import apply_custom_styles
 from services.open_source_langgraph import run_github_workflow
 
@@ -26,6 +27,7 @@ def opensource_page():
         st.write("")  # Spacer
         st.write("")  # Spacer
 
+                     
     if st.button("🚀 Analyze GitHub Ecosystem", type="primary", use_container_width=True):
         with st.spinner("Running LangGraph workflow: fetching trending repos, awesome lists, analyzing trends..."):
             result = run_github_workflow(
@@ -48,6 +50,21 @@ def opensource_page():
                     with st.expander(f"⭐ #{i} - {repo['name']} ({repo['stars']:,} stars)", expanded=(i <= 3)):
                         col_a, col_b = st.columns([3, 1])
                         with col_a:
+                            components.html(
+                                """
+                                <button onclick="alert('hey')" style="
+                                    padding: 8px 16px;
+                                    background-color: #FF4B4B;
+                                    color: white;
+                                    border: none;
+                                    border-radius: 4px;
+                                    cursor: pointer;
+                                    font-size: 14px;
+                                    font-weight: 500;
+                                ">👍 Like</button>
+                                """,
+                                height=50
+                            )
                             st.write(f"**Description:** {(repo.get('description') or 'No description')[:200]}")
                             if 'ai_reasoning' in repo:
                                 st.info(f"💡 **Why it's must-see:** {repo['ai_reasoning']}")
