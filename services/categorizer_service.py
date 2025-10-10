@@ -5,6 +5,7 @@ Service for categorizing GitHub repositories based on their metadata
 from typing import Dict, Any
 import logging
 from services.models.categories import RepoCategory
+from services.agents.agent_cat import categorize_repo
 
 logger = logging.getLogger(__name__)
 
@@ -22,8 +23,8 @@ class RepoCategorizer:
 
         This method analyzes the repository's description, topics, and other
         metadata to determine which category it belongs to. The categorization
-        uses keyword matching with precedence rules to ensure every repository
-        fits into exactly one category.
+        uses AI-powered analysis to ensure every repository fits into exactly
+        one category.
 
         Args:
             repo: Repository data dictionary containing:
@@ -46,7 +47,19 @@ class RepoCategorizer:
             >>> print(category.value)
             'Web Frameworks & Backend'
         """
-        # TODO: Implement categorization logic
-        # For now, return OTHER as placeholder
-        logger.warning(f"Categorization not implemented, defaulting to OTHER for repo: {repo.get('name', 'unknown')}")
+        # Use AI agent to categorize the repository
+        category_name = categorize_repo(
+            description=repo.get('description'),
+            topics=repo.get('topics'),
+            language=repo.get('language')
+        )
+
+        # Convert category name string to RepoCategory enum
+        for category in RepoCategory:
+            if category.value == category_name:
+                logger.info(f"Categorized {repo.get('name', 'unknown')} as: {category_name}")
+                return category
+
+        # Fallback to OTHER if category name doesn't match any enum
+        logger.warning(f"Category '{category_name}' not found in enum, defaulting to OTHER for repo: {repo.get('name', 'unknown')}")
         return RepoCategory.OTHER
