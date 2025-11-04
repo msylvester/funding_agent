@@ -218,12 +218,13 @@ class OpenSourceDataService:
             logger.error(f"Unexpected error searching repositories: {e}")
             return []
         
-    def get_awesome_lists(self, category: str = None) -> List[Dict[str, Any]]:
+    def get_awesome_lists(self, category: str = None, time_range: str = "monthly") -> List[Dict[str, Any]]:
         """
         Fetch curated awesome lists
 
         Args:
             category: Category filter (optional)
+            time_range: Time range for trending (daily, weekly, monthly)
 
         Returns:
             List of awesome list repositories
@@ -231,12 +232,23 @@ class OpenSourceDataService:
         try:
             # Calculate time windows for trending repos
             from datetime import datetime, timedelta
-            thirty_days_ago = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
+
+            # Map time_range to days
+            if time_range == "daily":
+                days_ago = 1
+            elif time_range == "weekly":
+                days_ago = 7
+            elif time_range == "monthly":
+                days_ago = 30
+            else:
+                days_ago = 30  # Default to monthly
+
+            since_date = (datetime.now() - timedelta(days=days_ago)).strftime("%Y-%m-%d")
             two_years_ago = (datetime.now() - timedelta(days=730)).strftime("%Y-%m-%d")
 
             # Build query for quality repos with recent activity (no "awesome" bias)
             # Only include repos created in the last 2 years
-            query = f"stars:>50 pushed:>{thirty_days_ago} created:>{two_years_ago}"
+            query = f"stars:>50 pushed:>{since_date} created:>{two_years_ago}"
             if category:
                 query += f" language:{category}"
             

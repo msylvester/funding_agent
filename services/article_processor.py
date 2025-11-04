@@ -8,8 +8,8 @@ from bs4 import BeautifulSoup
 '''
 Start of custom services
 '''
-from services.agents.agent_007 import is_funding_article_ai
-from services.agents.agent_blog_data_struct import enhance_with_ai
+from services.custom_agents.agent_007 import is_funding_article_ai
+from services.custom_agents.agent_blog_data_struct import enhance_with_ai
 from services.database import FundingDatabase
 
 
@@ -340,7 +340,7 @@ class ArticleProcessor:
     def extract_funding_details(self, title, content=""):
         """Extract funding details using basic regex patterns"""
         text = f"{title} {content}".lower()
-        
+
         # Extract funding amount
         funding_amount = "Not specified"
         amount_patterns = [
@@ -348,7 +348,7 @@ class ArticleProcessor:
             r'\$(\d+(?:\.\d+)?)\s*(?:billion|b)\b',
             r'\$(\d+(?:\.\d+)?)\s*(?:thousand|k)\b'
         ]
-        
+
         for pattern in amount_patterns:
             match = re.search(pattern, text)
             if match:
@@ -360,23 +360,27 @@ class ArticleProcessor:
                 elif 'thousand' in match.group(0) or 'k' in match.group(0):
                     funding_amount = f"${amount}K"
                 break
-        
-        # Extract company name
+
+        # Extract company name with improved patterns
         company_name = "Not specified"
         company_patterns = [
-            r'^([A-Z][a-zA-Z\s&.-]+?)\s+(?:raises|raised|closes|closed|secures|secured)',
+            # Pattern for "Company lands/raises/secures $X"
+            r'^([A-Z][a-zA-Z\s&.-]+?)\s+(?:lands|raises|raised|closes|closed|secures|secured|gets)',
+            # Pattern for "Company raises" at start
+            r'^([A-Z][a-zA-Z\s&.-]+?)\s+(?:raises|raised|closes|closed)',
+            # Pattern for "startup/company NAME raises"
             r'(?:startup|company)\s+([A-Z][a-zA-Z\s&.-]+?)\s+(?:raises|raised|closes|closed)',
         ]
-        
+
         for pattern in company_patterns:
             match = re.search(pattern, title)
             if match:
                 company_name = match.group(1).strip()
                 # Clean up common prefixes
                 company_name = re.sub(r'\b(?:startup|company|the)\b', '', company_name, flags=re.IGNORECASE).strip()
-                if len(company_name.split()) <= 3:  # Reasonable company name length
+                if len(company_name.split()) <= 4:  # Reasonable company name length (increased from 3 to 4)
                     break
-        
+
         # Extract series information
         series = "Not specified"
         series_match = re.search(r'series\s+([a-z]+)', text)
@@ -386,7 +390,7 @@ class ArticleProcessor:
             series = "Seed"
         elif 'pre-seed' in text:
             series = "Pre-seed"
-        
+
         return {
             'company_name': company_name,
             'funding_amount': funding_amount,

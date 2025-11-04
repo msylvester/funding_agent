@@ -46,9 +46,11 @@ def fetch_awesome_node(state: GitHubState) -> Dict[str, Any]:
     service = OpenSourceDataService()
     params = state.get('query_params', {})
 
-    # Use language parameter instead of awesome_category
+    # Extract language and time_range parameters
     language = params.get('language')
-    awesome = service.get_awesome_lists(category=language)
+    time_range = params.get('time_range', 'daily')
+
+    awesome = service.get_awesome_lists(category=language, time_range=time_range)
 
     logger.info(f"✅ Fetched {len(awesome)} awesome lists")
     return {"awesome_lists": awesome}
