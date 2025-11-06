@@ -18,16 +18,18 @@ from services.mongodb_tools import (
 # SCHEMAS
 # ===============================
 
-class AdviceSchema(BaseModel):
-    investors: list[str]
-    strategic_advice: str
+class InvestorCompanyPair(BaseModel):
+    investor: str
+    company: str
 
+class AdviceSchema(BaseModel):
+    investors: list[InvestorCompanyPair]
+    strategic_advice: str
 
 class SummarizeAndDisplaySchema(BaseModel):
     investor_name: str
     industry: str
     description: str
-
 
 # ===============================
 # ADVICE AGENT
@@ -39,24 +41,38 @@ advice_agent = Agent(
 You are a data-driven startup and product advisor with access to a database of funded companies and investors.
 
 When users ask about investors for their product:
-1. Extract the sector/industry from their question (e.g., "SaaS", "AI", "fintech", "healthcare", "e-commerce")
-2. Call search_funded_companies_by_sector(sector) to see what companies in that sector have been funded
-3. Call get_investors_for_sector(sector) to get a ranked list of investors active in that sector
-4. Analyze the data and prepare your response
 
-Your output must be structured as follows:
-- **investors**: Extract and return a list of investor/firm NAMES ONLY as strings (e.g., ["Sequoia Capital", "Andreessen Horowitz", "Y Combinator"]). Include the most relevant investors for the user's sector based on the data you retrieved.
-- **strategic_advice**: Provide comprehensive, actionable strategic advice for the user. Include specific recommendations, insights about the sector, funding trends, which investors to prioritize and why, and reference relevant companies these investors have funded. This should be detailed guidance that helps the user approach these investors effectively.
+1. Determine the sector/industry (e.g., "SaaS", "AI", "fintech", "healthcare", "e-commerce")
+2. Call search_funded_companies_by_sector(sector) to retrieve funded companies in that category
+3. Call get_investors_for_sector(sector) to retrieve investors active in that category
+4. Match investors to companies where possible (based on the data the tools return)
 
-**IMPORTANT - Handling Empty Results:**
-If the tools return empty lists (no companies or investors found in the database):
-- Set **investors** to an empty list: []
-- In **strategic_advice**, explain that no matching investors were found in the database for this sector
-- Suggest alternative keywords or broader categories the user could try (e.g., for "taco truck" suggest "food service", "restaurant", "food delivery")
-- Provide general advice about finding investors for less common sectors
-- DO NOT invent or hallucinate investor names. Only return investors that were actually found in the tool results.
+### ✅ REQUIRED OUTPUT FORMAT
 
-Base your output entirely on the real data retrieved from the tools. Be specific and actionable.
+Return:
+
+- **investors**: A list of objects, each containing:
+  - `investor`: investor/firm name
+  - `company`: a company they funded in that sector (best match you can find)
+
+Example:
+[
+  { "investor": "Sequoia Capital", "company": "Stripe" },
+  { "investor": "Andreessen Horowitz", "company": "Coinbase" }
+]
+
+- **strategic_advice**: Detailed, actionable guidance on approaching these investors and raising successfully in this sector.
+
+### ❗ IMPORTANT RULES
+
+- Only return investors found from the tool data
+- If you cannot match an investor to a specific company, do NOT invent one - leave it out
+- If results are empty:
+  - Return `investors: []`
+  - Explain in `strategic_advice` that no matches were found in the database
+  - Suggest broader keywords and a general funding strategy
+
+Be specific, structured, and actionable. Do not hallucinate. Base everything on tool results.
 """,
     model="gpt-4o",
     output_type=AdviceSchema,
@@ -71,21 +87,69 @@ Base your output entirely on the real data retrieved from the tools. Be specific
 summarize_and_display = Agent(
     name="Summarize and display",
     instructions="""
-You will receive startup funding advice and investor insights. Summarize key investor fit information concisely.
+You will receive structured investor + company matches and strategic advice.
+
+Summarize the most likely top-fit investor and opportunity clearly for a dashboard/CRM.
 
 Output fields:
-- investor_name: likely top-fit investor or firm mentioned
-- industry: the key sector/opportunity discussed
-- description: a narrative summary for a pitch deck or CRM note
+- investor_name: the best matching investor
+- industry: primary sector discussed
+- description: brief narrative summary
 """,
     model="gpt-4o",
     output_type=SummarizeAndDisplaySchema,
     model_settings=ModelSettings(store=True),
 )
 
+# ===============================
+# STANDALONE ADVICE FUNCTION (for testing)
+# ===============================
+
+async def get_investor_advice(input_text: str) -> dict[str, Any]:
+    """
+    Run just the advice agent to get investor recommendations.
+
+    This is a standalone function for testing purposes, mirroring the pattern
+    of classify_intent() in research_classifier.py. It runs ONLY the advice agent
+    without the summarization step.
+
+    Args:
+        input_text: The user's query about their product/startup
+
+    Returns:
+        Dictionary with:
+            - investors: List of {investor, company} pairs
+            - strategic_advice: Detailed strategic guidance text
+    """
+    with trace("Investor advice (standalone)"):
+        conversation_history: list[TResponseInputItem] = [
+            {
+                "role": "user",
+                "content": [{"type": "input_text", "text": input_text}],
+            }
+        ]
+
+        advice_result = await Runner.run(
+            advice_agent,
+            input=conversation_history,
+            run_config=RunConfig(
+                trace_metadata={
+                    "__trace_source__": "advice-agent-standalone",
+                    "workflow_id": "advice_standalone",
+                }
+            ),
+        )
+
+        return {
+            "investors": [
+                {"investor": pair.investor, "company": pair.company}
+                for pair in advice_result.final_output.investors
+            ],
+            "strategic_advice": advice_result.final_output.strategic_advice,
+        }
 
 # ===============================
-# WORKFLOW
+# FULL WORKFLOW (for production)
 # ===============================
 
 async def run_advice_workflow(input_text: str) -> dict[str, Any]:
@@ -117,12 +181,12 @@ async def run_advice_workflow(input_text: str) -> dict[str, Any]:
             "strategic_advice": advice_result.final_output.strategic_advice,
         }
 
-        # Add advice messages to history for the summary agent
+        # Add advice messages to history
         conversation_history.extend(
             [item.to_input_item() for item in advice_result.new_items]
         )
 
-        # Step 2: Run summarization agent
+        # Step 2: Summarize
         summarize_and_display_result = await Runner.run(
             summarize_and_display,
             input=conversation_history,

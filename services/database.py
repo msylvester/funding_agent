@@ -7,7 +7,7 @@ import os
 from bson import ObjectId
 
 class FundingDatabase:
-    def __init__(self, connection_string: str = None, db_name: str = 'funded'):
+    def __init__(self, connection_string: str = None, db_name: str = 'funded_backup_20251105_121856'):
         """
         Initialize MongoDB connection for funded companies database
 
