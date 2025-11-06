@@ -1,0 +1,40 @@
+[
+  {
+    "input": "Who would be interested in my food delivery startup?",
+    "expected": {
+      "min_investors": 3
+    }
+  },
+  {
+    "input": "I'm building an automotive AI company. What investors should I pitch?",
+    "expected": {
+      "min_investors": 7
+    }
+  },
+  {
+    "input": "Which investors focus on polymers, checmicals?",
+    "expected": {
+      "min_investors": 3
+    }
+  },
+    {
+    "input": "Who would invest in my fashion company?",
+    "expected": {
+      "min_investors": 3
+    }
+  },
+  {
+    "input": "Who would invest in my quantum computing company?",
+    "expected": {
+      "min_investors": 1
+    }
+  },
+  {
+    "input": "Who would invest in my quantum company?",
+    "expected": {
+      "min_investors": 1
+    }
+  }
+
+
+]
