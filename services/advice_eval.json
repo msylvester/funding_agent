@@ -34,7 +34,12 @@
     "expected": {
       "min_investors": 1
     }
+  },
+  {
+    "input": "Who would invest in my finance company?",
+    "expected": {
+      "min_investors": 1
+    }
   }
-
 
 ]

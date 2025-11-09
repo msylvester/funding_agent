@@ -1,9 +1,12 @@
 import asyncio
-from tabulate import tabulate
 from sector_agent import classify_sector
 
 # Define test cases for sector classification
 TEST_CASES = [
+        {
+      "input": "We're building an AI-powered healthcare fintech platform",
+      "expected": "AI",  # But AI might classify as "Healthcare" or "Fintech"
+  },
     {
         "input": "Who would be interested in my food delivery startup?",
         "expected": "Food delivery",  # Updated to match database sector
@@ -48,14 +51,15 @@ def run_sector_tests():
             results.append([query, expected, "ERROR", "0.00", "❌ FAIL", str(e)])
 
     print("\n=== SECTOR CLASSIFICATION TEST RESULTS ===\n")
-    print(
-        tabulate(
-            results,
-            headers=["Query", "Expected", "Predicted", "Confidence", "Status", "Rationale"],
-            tablefmt="grid",
-            maxcolwidths=[30, 15, 15, 10, 8, 50],
-        )
-    )
+    for i, (query, expected, predicted, confidence, status, rationale) in enumerate(results, 1):
+        print(f"Test {i}:")
+        print(f"  Query: {query}")
+        print(f"  Expected: {expected}")
+        print(f"  Predicted: {predicted}")
+        print(f"  Confidence: {confidence}")
+        print(f"  Status: {status}")
+        print(f"  Rationale: {rationale}")
+        print()
 
 
 if __name__ == "__main__":
