@@ -18,7 +18,7 @@ APP_CONFIG = {
 # Database Configuration
 DATABASE_CONFIG = {
     'mongodb_uri': 'mongodb://localhost:27017/',
-    'database_name': 'funded',
+    'database_name': 'funded_backup_20251105_121856',
     'collection_name': 'companies'
 }
 

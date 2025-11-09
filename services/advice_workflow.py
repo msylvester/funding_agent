@@ -14,6 +14,12 @@ from mongodb_tools import (
     get_investors_for_sector,
 )
 
+# Sector classification agent
+try:
+    from services.sector_agent import classify_sector
+except ImportError:
+    from sector_agent import classify_sector
+
 # ===============================
 # SCHEMAS
 # ===============================
@@ -31,6 +37,7 @@ class SummarizeAndDisplaySchema(BaseModel):
     industry: str
     description: str
 
+
 # ===============================
 # ADVICE AGENT
 # ===============================
@@ -42,7 +49,9 @@ You are a data-driven startup and product advisor with access to a database of f
 
 When users ask about investors for their product:
 
-1. Determine the sector/industry (e.g., "SaaS", "AI", "fintech", "healthcare", "e-commerce", "food delivery")
+1. Use the provided sector/industry classification to search for relevant companies
+   - The sector has already been determined from the user's query
+   - Sector examples: "SaaS", "AI", "fintech", "healthcare", "e-commerce", "food delivery"
 2. Call search_funded_companies_by_sector(sector) to retrieve funded companies in that category
    - This returns companies with their investors already linked
    - Each company has an "investors" field containing comma-separated investor names
@@ -128,13 +137,24 @@ async def get_investor_advice(input_text: str) -> dict[str, Any]:
             - strategic_advice: Detailed strategic guidance text
     """
     with trace("Investor advice (standalone)"):
+        # Step 1: Classify the sector using the sector agent
+        sector_classification = classify_sector(input_text)
+
+        # Log the classification
+        print(f"\n[Sector Classification]")
+        print(f"  Sector: {sector_classification.sector}")
+        print(f"  Confidence: {sector_classification.confidence:.2f}")
+        print(f"  Rationale: {sector_classification.rationale}\n")
+
+        # Step 2: Prepare conversation with sector context
         conversation_history: list[TResponseInputItem] = [
             {
                 "role": "user",
-                "content": [{"type": "input_text", "text": input_text}],
+                "content": [{"type": "input_text", "text": f"[SECTOR: {sector_classification.sector}]\n\n{input_text}"}],
             }
         ]
 
+        # Step 3: Run advice agent with classified sector
         advice_result = await Runner.run(
             advice_agent,
             input=conversation_history,
@@ -160,17 +180,27 @@ async def get_investor_advice(input_text: str) -> dict[str, Any]:
 
 async def run_advice_workflow(input_text: str) -> dict[str, Any]:
     """
-    Run the entire workflow: investor advice → summary display output.
+    Run the entire workflow: sector classification → investor advice → summary display output.
     """
     with trace("Advice workflow v2"):
+        # Step 1: Classify the sector using the sector agent
+        sector_classification = classify_sector(input_text)
+
+        # Log the classification
+        print(f"\n[Sector Classification]")
+        print(f"  Sector: {sector_classification.sector}")
+        print(f"  Confidence: {sector_classification.confidence:.2f}")
+        print(f"  Rationale: {sector_classification.rationale}\n")
+
+        # Step 2: Prepare conversation with sector context
         conversation_history: list[TResponseInputItem] = [
             {
                 "role": "user",
-                "content": [{"type": "input_text", "text": input_text}],
+                "content": [{"type": "input_text", "text": f"[SECTOR: {sector_classification.sector}]\n\n{input_text}"}],
             }
         ]
 
-        # Step 1: Run the advice agent
+        # Step 3: Run the advice agent
         advice_result = await Runner.run(
             advice_agent,
             input=conversation_history,
@@ -192,7 +222,7 @@ async def run_advice_workflow(input_text: str) -> dict[str, Any]:
             [item.to_input_item() for item in advice_result.new_items]
         )
 
-        # Step 2: Summarize
+        # Step 4: Summarize
         summarize_and_display_result = await Runner.run(
             summarize_and_display,
             input=conversation_history,
