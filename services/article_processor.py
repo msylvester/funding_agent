@@ -8,8 +8,8 @@ from bs4 import BeautifulSoup
 '''
 Start of custom services
 '''
-from services.custom_agents.agent_007 import is_funding_article_ai
-from services.custom_agents.agent_blog_data_struct import enhance_with_ai
+from services.agents.agent_007 import is_funding_article_ai
+from services.agents.agent_blog_data_struct import enhance_with_ai
 from services.database import FundingDatabase
 
 
