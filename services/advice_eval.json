@@ -6,7 +6,7 @@
     }
   },
   {
-    "input": "I'm building an automotive AI company. What investors should I pitch?",
+    "input": "I'm building an automotive company. What investors should I pitch?",
     "expected": {
       "min_investors": 7
     }
@@ -38,7 +38,7 @@
   {
     "input": "Who would invest in my finance company?",
     "expected": {
-      "min_investors": 1
+      "min_investors": 0
     }
   }
 

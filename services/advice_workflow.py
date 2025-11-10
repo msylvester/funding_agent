@@ -4,6 +4,7 @@ Unified Advice + Summary Display Workflow
 
 from __future__ import annotations
 from typing import Any
+import asyncio
 
 from agents import Agent, ModelSettings, Runner, RunConfig, TResponseInputItem, trace
 from pydantic import BaseModel
@@ -140,12 +141,6 @@ async def get_investor_advice(input_text: str) -> dict[str, Any]:
         # Step 1: Classify the sector using the sector agent
         sector_classification = classify_sector(input_text)
 
-        # Log the classification
-        print(f"\n[Sector Classification]")
-        print(f"  Sector: {sector_classification.sector}")
-        print(f"  Confidence: {sector_classification.confidence:.2f}")
-        print(f"  Rationale: {sector_classification.rationale}\n")
-
         # Step 2: Prepare conversation with sector context
         conversation_history: list[TResponseInputItem] = [
             {
@@ -174,6 +169,25 @@ async def get_investor_advice(input_text: str) -> dict[str, Any]:
             "strategic_advice": advice_result.final_output.strategic_advice,
         }
 
+
+def get_investor_advice_sync(input_text: str) -> dict[str, Any]:
+    """
+    Synchronous wrapper for get_investor_advice() for use in testing harness.
+
+    This allows the eval harness to call the advice agent synchronously,
+    matching the pattern used in sector_harness.py.
+
+    Args:
+        input_text: The user's query about their product/startup
+
+    Returns:
+        Dictionary with:
+            - investors: List of {investor, company} pairs
+            - strategic_advice: Detailed strategic guidance text
+    """
+    return asyncio.run(get_investor_advice(input_text))
+
+
 # ===============================
 # FULL WORKFLOW (for production)
 # ===============================
@@ -199,6 +213,40 @@ async def run_advice_workflow(input_text: str) -> dict[str, Any]:
                 "content": [{"type": "input_text", "text": f"[SECTOR: {sector_classification.sector}]\n\n{input_text}"}],
             }
         ]
+
+        # Check if confidence is too low to provide specific recommendations
+        if sector_classification.confidence < 0.8:
+            print(f"[WARNING] Confidence ({sector_classification.confidence:.2f}) is below threshold (0.9). Returning generic response.\n")
+            return {
+                "advice": {
+                    "investors": [],
+                    "strategic_advice": (
+                        f"I wasn't able to confidently classify your startup into a specific sector "
+                        f"(confidence: {sector_classification.confidence:.2f}). "
+                        f"To provide accurate investor recommendations, I need a clearer understanding of your industry.\n\n"
+                        f"**General Fundraising Advice:**\n\n"
+                        f"1. **Clarify Your Value Proposition**: Clearly articulate what problem you solve and for whom. "
+                        f"This helps investors understand your market positioning.\n\n"
+                        f"2. **Research Sector-Specific Investors**: Once you've refined your sector focus, "
+                        f"look for investors who have a track record in your specific industry.\n\n"
+                        f"3. **Build Traction First**: Demonstrating product-market fit, customer adoption, "
+                        f"or revenue can make you more attractive to investors across any sector.\n\n"
+                        f"4. **Network Within Your Industry**: Attend sector-specific events and conferences "
+                        f"to meet investors who understand your space.\n\n"
+                        f"Try rephrasing your query with more specific details about your product, "
+                        f"target market, or industry to get tailored investor recommendations."
+                    )
+                },
+                "summary_display": {
+                    "investor_name": "N/A - Low Confidence Classification",
+                    "industry": sector_classification.sector,
+                    "description": (
+                        f"Unable to provide specific investor recommendations due to low sector "
+                        f"classification confidence ({sector_classification.confidence:.2f}). "
+                        f"Generic fundraising advice provided instead."
+                    )
+                }
+            }
 
         # Step 3: Run the advice agent
         advice_result = await Runner.run(
