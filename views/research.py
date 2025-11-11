@@ -68,12 +68,25 @@ def research_page():
             investors_list = advice_result.get("advice", {}).get("investors", [])
             if investors_list:
                 st.markdown("#### 📊 Recommended Investors")
-                for investor_name in investors_list:
+                for investor_item in investors_list:
                     with st.container():
+                        # Parse investor data
+                        if isinstance(investor_item, dict):
+                            investor_name = investor_item.get('investor', 'Unknown Investor')
+                            company_name = investor_item.get('company', '')
+                        else:
+                            # Handle string format like "investor='IBM' company='Qedma'"
+                            import re
+                            investor_match = re.search(r"investor='([^']*)'", str(investor_item))
+                            company_match = re.search(r"company='([^']*)'", str(investor_item))
+                            investor_name = investor_match.group(1) if investor_match else str(investor_item)
+                            company_name = company_match.group(1) if company_match else ''
+
                         st.markdown(
                             f"""
                             <div style='background-color: #f0f2f6; padding: 1.5rem; border-radius: 10px; margin-bottom: 1rem; color: black;'>
-                                <h3 style='margin-top: 0; color: black;'>{investor_name}</h3>
+                                <h1 style='margin-top: 0; color: black; font-size: 2rem;'>{investor_name}</h1>
+                                {f"<p style='color: #666; margin-bottom: 0;'>{company_name}</p>" if company_name else ""}
                             </div>
                             """,
                             unsafe_allow_html=True
