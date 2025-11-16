@@ -74,17 +74,17 @@ class RAGQueryResponse(BaseModel):
 # ===============================
 
 @function_tool
-def rag_semantic_search(query: str, top_k: int = 5, distance_threshold: float = 1.6) -> dict:
+def rag_semantic_search(query: str, top_k: int = 5, distance_threshold: float = 0.3) -> dict:
     """
     Search the ChromaDB vector store for documents relevant to the query.
 
-    This tool performs semantic similarity search using TF-IDF embeddings
+    This tool performs semantic similarity search using OpenAI embeddings
     to find the most relevant company documents based on the query.
 
     Args:
         query: The search query (e.g., "fintech startups in Saudi Arabia")
         top_k: Maximum number of results to return (default: 5)
-        distance_threshold: Maximum distance for relevance filtering (default: 1.6)
+        distance_threshold: Minimum similarity score for relevance filtering (default: 0.3, range 0.0-1.0)
 
     Returns:
         Dictionary containing:
@@ -96,7 +96,7 @@ def rag_semantic_search(query: str, top_k: int = 5, distance_threshold: float = 
     ds = _get_data_service()
 
     # Retrieve documents using DataService's method
-    results = ds.retrieve_documents(query, n_results=top_k, distance_threshold=distance_threshold)
+    results = ds.retrieve_documents(query, n_results=top_k, similarity_threshold=distance_threshold)
 
     # Extract from nested lists (ChromaDB format)
     documents = results.get("documents", [[]])[0]
@@ -329,11 +329,17 @@ if __name__ == "__main__":
 
     # Test queries
     test_queries = [
-        "What fintech companies have been funded?",
-        "Tell me about AI startups",
-        "Any companies that do food delivery",
-        "Any copanies that do energ",
-        "Any social media companies",
+        #should at least select Vast Data
+        "storage technology",
+        # should at least select tahoe therapeutics
+        "medical research",
+        # should at least select uno platform
+        "enterprise grade developer tools",
+
+        # should at least describe Palabar
+        "ai powered speech translation",
+        #should at least describe 8 sleep
+        "ai powered sleep tech",
         
     ]
 
