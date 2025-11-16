@@ -3,7 +3,7 @@ Data service layer for handling database operations
 """
 from services.database import FundingDatabase
 from typing import List, Dict, Any, Optional
-from sklearn.feature_extraction.text import TfidfVectorizer
+from openai import OpenAI
 import chromadb
 from chromadb.config import Settings
 import uuid
@@ -17,11 +17,16 @@ class DataService:
         print("🔧 DEBUG: Initializing DataService...")
         
         self.db = FundingDatabase()
-        self.vectorizer = TfidfVectorizer(max_features=1000, stop_words='english')
         self.documents = []
-        self.document_vectors = None
         self.companies_data = []
-        
+
+        # Initialize OpenAI client for embeddings
+        self.openai_api_key = os.getenv('OPENAI_API_KEY')
+        if not self.openai_api_key:
+            raise ValueError("OPENAI_API_KEY environment variable not set")
+        self.openai_client = OpenAI(api_key=self.openai_api_key)
+        print("🔧 DEBUG: OpenAI client initialized for embeddings")
+
         # Load OpenRouter API configuration
         from config.settings import API_CONFIG
         from services.custom_agents.agent_rag import RAGAgent
@@ -55,7 +60,32 @@ class DataService:
         
         # Load existing documents if they exist in ChromaDB
         self._load_existing_data()
-    
+
+    def _get_embeddings(self, texts: List[str]) -> List[List[float]]:
+        """
+        Get embeddings from OpenAI for a list of texts using text-embedding-3-small.
+
+        Args:
+            texts: List of text strings to embed
+
+        Returns:
+            List of embedding vectors (each is a list of 1536 floats)
+        """
+        try:
+            print(f"🔧 DEBUG: Getting OpenAI embeddings for {len(texts)} texts...")
+            response = self.openai_client.embeddings.create(
+                model="text-embedding-3-small",
+                input=texts
+            )
+            # Extract embeddings in the same order as input
+            embeddings = [item.embedding for item in response.data]
+            print(f"🔧 DEBUG: Successfully created {len(embeddings)} embeddings (dimension: {len(embeddings[0])})")
+            return embeddings
+        except Exception as e:
+            print(f"❌ ERROR: Failed to get OpenAI embeddings: {e}")
+            traceback.print_exc()
+            raise
+
     def ingest_data(self) -> Dict[str, Any]:
         """
         Handle data ingestion - query MongoDB and return results
@@ -113,10 +143,9 @@ class DataService:
                 """
                 self.documents.append(doc.strip())
 
-            # Create TF-IDF vectors
+            # Create OpenAI embeddings
             if self.documents:
-                self.document_vectors = self.vectorizer.fit_transform(self.documents)
-                dense_vectors = self.document_vectors.toarray()
+                embeddings = self._get_embeddings(self.documents)
 
                 # Handle dimension mismatch by recreating collection
                 try:
@@ -127,27 +156,27 @@ class DataService:
                         print("🔧 DEBUG: Deleted existing collection")
                     except Exception as e:
                         print(f"🔧 DEBUG: Collection didn't exist or couldn't delete: {e}")
-                    
+
                     # Create fresh collection
                     self.chroma_collection = self.chroma_client.create_collection("funding_data_embeddings")
-                    print(f"🔧 DEBUG: Created new collection with dimension {len(dense_vectors[0])}")
-                        
+                    print(f"🔧 DEBUG: Created new collection with dimension {len(embeddings[0])}")
+
                 except Exception as e:
                     print(f"❌ ERROR: Failed to recreate collection: {e}")
                     raise
-            
+
                 # Store each document's embedding into ChromaDB
                 print(f'🔧 DEBUG: About to add {len(self.documents)} documents to ChromaDB')
                 document_ids = []
                 documents_to_add = []
                 embeddings_to_add = []
                 metadatas_to_add = []
-                
+
                 for i, doc in enumerate(self.documents):
                     doc_id = str(uuid.uuid4())
                     document_ids.append(doc_id)
                     documents_to_add.append(doc)
-                    embeddings_to_add.append(dense_vectors[i].tolist())
+                    embeddings_to_add.append(embeddings[i])
                     
                     # Convert date to Unix timestamp
                     company_date = self.companies_data[i].get('date')
@@ -231,10 +260,8 @@ class DataService:
                 
                 if all_data and all_data.get('documents'):
                     self.documents = all_data['documents']
-                    # Fit the vectorizer with existing documents
                     if self.documents:
-                        self.vectorizer.fit(self.documents)
-                        print(f"✅ DEBUG: Loaded {len(self.documents)} existing documents from ChromaDB and fitted vectorizer")
+                        print(f"✅ DEBUG: Loaded {len(self.documents)} existing documents from ChromaDB")
                     else:
                         print("⚠️ DEBUG: No documents found in ChromaDB data")
                 else:
@@ -303,14 +330,14 @@ class DataService:
             print(f"❌ ERROR: Failed to get collection count: {e}")
             return {"documents": [[]], "metadatas": [[]], "distances": [[]]}
 
-        # Check if vectorizer is fitted
+        # Create query embedding using OpenAI
         try:
-            print("🔍 DEBUG: Creating query vector...")
-            query_vector = self.vectorizer.transform([query]).toarray()[0].tolist()
+            print("🔍 DEBUG: Creating query embedding with OpenAI...")
+            query_vector = self._get_embeddings([query])[0]
             print(f"🔍 DEBUG: Query vector created successfully, length = {len(query_vector)}")
             print(f"🔍 DEBUG: Query vector sample (first 5): {query_vector[:5]}")
         except Exception as e:
-            print(f"❌ ERROR: Vectorizer error: {e}")
+            print(f"❌ ERROR: OpenAI embedding error: {e}")
             traceback.print_exc()
             return {"documents": [[]], "metadatas": [[]], "distances": [[]]}
 

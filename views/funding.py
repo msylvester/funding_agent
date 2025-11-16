@@ -42,7 +42,7 @@ def funding_page():
     # Process the submission outside the form
     if st.session_state.last_submitted:
         current_input = st.session_state.last_submitted
-        
+
         # Show loading animation while processing
         with st.spinner("Analyzing funding data..."):
             data_service = DataService()

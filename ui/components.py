@@ -68,12 +68,12 @@ def _handle_form_submission(submit_button: bool, update_button: bool, ingest_but
             data_service = DataService()
             try:
                 response = data_service.generate_response_with_reasoning(user_input)
-                
+
                 # Display the response immediately
                 st.markdown("---")
                 st.markdown(f"### 🔍 Query: *{user_input}*")
                 render_response_section(response)
-                
+
             except Exception as e:
                 st.error(f"❌ Error processing query: {str(e)}")
             finally:
@@ -115,25 +115,25 @@ def _handle_form_submission(submit_button: bool, update_button: bool, ingest_but
             data_service = DataService()
             try:
                 result = data_service.ingest_data()
-                
+
                 if result['success']:
                     st.success(result['message'])
-                    
+
                     # Display recent companies with full details
                     if result['recent_companies']:
                         st.subheader("🏢 Recent Companies")
-                        
+
                         for i, company in enumerate(result['recent_companies'], 1):
                             with st.expander(f"{i}. {company.get('company_name', 'Unknown Company')} - {company.get('funding_amount', 'N/A')}"):
                                 col1, col2 = st.columns(2)
-                                
+
                                 with col1:
                                     st.write(f"**Company:** {company.get('company_name', 'N/A')}")
                                     st.write(f"**Funding Amount:** {company.get('funding_amount', 'N/A')}")
                                     st.write(f"**Series:** {company.get('series', 'N/A')}")
                                     st.write(f"**Valuation:** {company.get('valuation', 'N/A')}")
                                     st.write(f"**Sector:** {company.get('sector', 'N/A')}")
-                                
+
                                 with col2:
                                     st.write(f"**Investors:** {company.get('investors', 'N/A')}")
                                     st.write(f"**Founded Year:** {company.get('founded_year', 'N/A')}")
@@ -141,7 +141,7 @@ def _handle_form_submission(submit_button: bool, update_button: bool, ingest_but
                                     st.write(f"**Date:** {company.get('date', 'N/A')}")
                                     if company.get('url'):
                                         st.write(f"**Article:** [Read more]({company.get('url')})")
-                                
+
                                 if company.get('description'):
                                     st.write(f"**Description:** {company.get('description')}")
                 else:

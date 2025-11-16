@@ -4,6 +4,7 @@ Research page for company information using AI agents
 
 import streamlit as st
 import asyncio
+import html
 from services.orchestrator_workflow import run_orchestrator_workflow
 
 
@@ -82,11 +83,15 @@ def research_page():
                             investor_name = investor_match.group(1) if investor_match else str(investor_item)
                             company_name = company_match.group(1) if company_match else ''
 
+                        # Escape HTML entities to prevent rendering issues
+                        investor_escaped = html.escape(investor_name)
+                        company_escaped = html.escape(company_name) if company_name else ""
+
                         st.markdown(
                             f"""
                             <div style='background-color: #f0f2f6; padding: 1.5rem; border-radius: 10px; margin-bottom: 1rem; color: black;'>
-                                <h1 style='margin-top: 0; color: black; font-size: 2rem;'>{investor_name}</h1>
-                                {f"<p style='color: #666; margin-bottom: 0;'>{company_name}</p>" if company_name else ""}
+                                <h1 style='margin-top: 0; color: black; font-size: 2rem;'>{investor_escaped}</h1>
+                                {f"<p style='color: #666; margin-bottom: 0;'>{company_escaped}</p>" if company_name else ""}
                             </div>
                             """,
                             unsafe_allow_html=True
@@ -115,10 +120,13 @@ def research_page():
 
                 # Create a nice card for the summary
                 with st.container():
+                    # Escape HTML entities to prevent rendering issues
+                    company_name_escaped = html.escape(summary.get('company_name', 'N/A'))
+
                     st.markdown(
                         f"""
                         <div style='background-color: #f0f2f6; padding: 1.5rem; border-radius: 10px; margin-bottom: 1rem;'>
-                            <h3 style='margin-top: 0;'>{summary.get('company_name', 'N/A')}</h3>
+                            <h3 style='margin-top: 0;'>{company_name_escaped}</h3>
                         </div>
                         """,
                         unsafe_allow_html=True

@@ -331,7 +331,10 @@ if __name__ == "__main__":
     test_queries = [
         "What fintech companies have been funded?",
         "Tell me about AI startups",
-        "What are the most recent funded companies?",
+        "Any companies that do food delivery",
+        "Any copanies that do energ",
+        "Any social media companies",
+        
     ]
 
     for query in test_queries:
