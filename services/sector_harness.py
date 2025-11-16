@@ -1,9 +1,19 @@
 import asyncio
-from sector_agent import classify_sector
+import argparse
+from sector_agent import classify_sector, get_valid_sectors
 
 # Define test cases for sector classification
 TEST_CASES = [
-
+     {
+      "input": "Who would invest in my umbrellac compay",
+      "expected": "Social Media",  # But AI might classify as "Healthcare" or "Fintech"
+  },
+ 
+        {
+      "input": "Who would invest in my social media startup",
+      "expected": "Social Media",  # But AI might classify as "Healthcare" or "Fintech"
+  },
+ 
         {
       "input": "Who would invest in my finntech company",
       "expected": "Technology",  # But AI might classify as "Healthcare" or "Fintech"
@@ -35,6 +45,25 @@ TEST_CASES = [
         "expected": "Healthcare",
     },
 ]
+
+
+def print_valid_sectors():
+    """Prints all valid sectors retrieved from MongoDB"""
+    print("\n=== VALID SECTORS FROM DATABASE ===\n")
+
+    try:
+        sectors = get_valid_sectors()
+        print(f"Total sectors found: {len(sectors)}\n")
+
+        for i, sector in enumerate(sectors, 1):
+            print(f"{i:3d}. {sector}")
+
+        print(f"\n{'='*40}")
+        print(f"Total: {len(sectors)} sectors")
+        print(f"{'='*40}\n")
+
+    except Exception as e:
+        print(f"❌ Error retrieving sectors: {e}")
 
 
 def run_sector_tests():
@@ -89,6 +118,19 @@ def run_sector_tests():
 
 
 if __name__ == "__main__":
-    run_sector_tests()
+    parser = argparse.ArgumentParser(description="Sector classification testing harness")
+    parser.add_argument(
+        "--print_only",
+        type=str,
+        choices=["sectors"],
+        help="Print specific information without running tests. Options: 'sectors' (prints all valid sectors from DB)"
+    )
+
+    args = parser.parse_args()
+
+    if args.print_only == "sectors":
+        print_valid_sectors()
+    else:
+        run_sector_tests()
 
 

@@ -1,45 +1,66 @@
-[
+[{
+    "input": "Who would be interested in my food social media startup?",
+    "sector": "Social Media",
+    "confidence": 0.90,
+    "expected": {
+      "min_investors": 0
+    }
+  },
+ 
   {
     "input": "Who would be interested in my food delivery startup?",
+    "sector": "food delivery",
+    "confidence": 0.95,
     "expected": {
       "min_investors": 3
     }
   },
   {
     "input": "I'm building an automotive company. What investors should I pitch?",
+    "sector": "automotive",
+    "confidence": 0.95,
     "expected": {
       "min_investors": 7
     }
   },
   {
     "input": "Which investors focus on polymers, checmicals?",
+    "sector": "chemicals",
+    "confidence": 0.90,
     "expected": {
       "min_investors": 3
     }
   },
-    {
+  {
     "input": "Who would invest in my fashion company?",
+    "sector": "fashion",
+    "confidence": 0.95,
     "expected": {
       "min_investors": 3
     }
   },
   {
     "input": "Who would invest in my quantum computing company?",
+    "sector": "quantum computing",
+    "confidence": 0.95,
     "expected": {
       "min_investors": 1
     }
   },
   {
     "input": "Who would invest in my quantum company?",
+    "sector": "quantum computing",
+    "confidence": 0.90,
     "expected": {
       "min_investors": 1
     }
   },
   {
     "input": "Who would invest in my finance company?",
+    "sector": "finance",
+    "confidence": 0.85,
     "expected": {
       "min_investors": 0
     }
   }
-
 ]

@@ -105,15 +105,14 @@ class DataService:
             # Create documents by combining relevant fields
             self.documents = []
             for company in companies_data:
+
+                # Keep only the company_name & description
                 doc = f"""
                 Company: {company.get('company_name', '')}
-                Funding Amount: {company.get('funding_amount', '')}
-                Investors: {company.get('investors', '')}
-                Sector: {company.get('sector', '')}
                 Description: {company.get('description', '')}
                 """
                 self.documents.append(doc.strip())
-            
+
             # Create TF-IDF vectors
             if self.documents:
                 self.document_vectors = self.vectorizer.fit_transform(self.documents)
@@ -466,5 +465,5 @@ class DataService:
         
         # Use RAG Agent to generate reasoning response
         return self.rag_agent.generate_reasoning_response(query, documents, metadatas, distances)
-    
-    
+
+

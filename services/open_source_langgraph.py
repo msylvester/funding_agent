@@ -7,13 +7,13 @@ All functionality is preserved for backward compatibility.
 """
 
 # Import everything from the refactored structure
-from services.workflows.github.state import GitHubState
-from services.workflows.github.nodes.fetch import fetch_trending_node, fetch_awesome_node
-from services.workflows.github.nodes.enrich import enrich_details_node
-from services.workflows.github.nodes.select import select_must_see_node
-from services.workflows.github.conditions import should_enrich
-from services.workflows.github.graph import create_github_workflow
-from services.workflows.github.runner import run_github_workflow
+from services.github_workflows.github.state import GitHubState
+from services.github_workflows.github.nodes.fetch import fetch_trending_node, fetch_awesome_node
+from services.github_workflows.github.nodes.enrich import enrich_details_node
+from services.github_workflows.github.nodes.select import select_must_see_node
+from services.github_workflows.github.conditions import should_enrich
+from services.github_workflows.github.graph import create_github_workflow
+from services.github_workflows.github.runner import run_github_workflow
 
 # Re-export for backward compatibility
 __all__ = [

@@ -50,10 +50,11 @@ You are a data-driven startup and product advisor with access to a database of f
 
 When users ask about investors for their product:
 
-1. Use the provided sector/industry classification to search for relevant companies
-   - The sector has already been determined from the user's query
-   - Sector examples: "SaaS", "AI", "fintech", "healthcare", "e-commerce", "food delivery"
-2. Call search_funded_companies_by_sector(sector) to retrieve funded companies in that category
+1. Use the sector classification provided in the system message to search for relevant companies
+   - The sector has already been determined by a classification agent and will be provided in a system message
+   - Use this exact sector value when calling the search tools
+   - The sector will look like: "SaaS", "AI", "fintech", "healthcare", "e-commerce", "food delivery", "quantum computing", etc.
+2. Call search_funded_companies_by_sector(sector) using the exact sector from the system message
    - This returns companies with their investors already linked
    - Each company has an "investors" field containing comma-separated investor names
 3. Extract investor-company pairs from the search results:
@@ -85,8 +86,9 @@ Example - if search returns Calo with investors "AlJazira Capital, Nuwa Capital"
 - Do NOT invent or add investors not present in the tool results
 - If search returns no companies:
   - Return `investors: []`
-  - Explain in `strategic_advice` that no matches were found in the database
-  - Suggest broader search terms and general funding strategy
+  - In `strategic_advice`, reference the ACTUAL SECTOR from the system message (e.g., "quantum computing", "Social Media", etc.)
+  - Explain that no specific investor data was found for that particular sector in the database
+  - Suggest broader search terms and general funding strategy for that sector
 
 Be specific, structured, and actionable. Use ALL the data from tool results - don't leave investors out.
 """,
@@ -144,8 +146,12 @@ async def get_investor_advice(input_text: str) -> dict[str, Any]:
         # Step 2: Prepare conversation with sector context
         conversation_history: list[TResponseInputItem] = [
             {
+                "role": "system",
+                "content": [{"type": "input_text", "text": f"The user's startup has been classified into the following sector: {sector_classification.sector}"}],
+            },
+            {
                 "role": "user",
-                "content": [{"type": "input_text", "text": f"[SECTOR: {sector_classification.sector}]\n\n{input_text}"}],
+                "content": [{"type": "input_text", "text": input_text}],
             }
         ]
 
@@ -209,8 +215,12 @@ async def run_advice_workflow(input_text: str) -> dict[str, Any]:
         # Step 2: Prepare conversation with sector context
         conversation_history: list[TResponseInputItem] = [
             {
+                "role": "system",
+                "content": [{"type": "input_text", "text": f"The user's startup has been classified into the following sector: {sector_classification.sector}"}],
+            },
+            {
                 "role": "user",
-                "content": [{"type": "input_text", "text": f"[SECTOR: {sector_classification.sector}]\n\n{input_text}"}],
+                "content": [{"type": "input_text", "text": input_text}],
             }
         ]
 

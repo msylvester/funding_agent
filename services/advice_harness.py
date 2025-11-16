@@ -32,6 +32,8 @@ def run_advice_tests():
 
     for case in TEST_CASES:
         query = case["input"]
+        sector = case.get("sector", "unknown")
+        confidence = case.get("confidence", 0.0)
         expected_min = case["expected"]["min_investors"]
 
         try:
@@ -43,15 +45,16 @@ def run_advice_tests():
             advice_snippet = strategic_advice[:100] + "..." if len(strategic_advice) > 100 else strategic_advice
 
             status = "✅ PASS" if actual_count >= expected_min else "❌ FAIL"
-            results.append([query, expected_min, actual_count, status, advice_snippet])
+            results.append([query, sector, confidence, expected_min, actual_count, status, advice_snippet])
 
         except Exception as e:
-            results.append([query, expected_min, "ERROR", "❌ FAIL", str(e)])
+            results.append([query, sector, confidence, expected_min, "ERROR", "❌ FAIL", str(e)])
 
     print("\n=== ADVICE AGENT TEST RESULTS ===\n")
-    for i, (query, expected_min, actual_count, status, advice_snippet) in enumerate(results, 1):
+    for i, (query, sector, confidence, expected_min, actual_count, status, advice_snippet) in enumerate(results, 1):
         print(f"Test {i}:")
         print(f"  Query: {query}")
+        print(f"  [SECTOR: {sector}] (confidence: {confidence:.2f})")
         print(f"  Expected: >= {expected_min} investors")
         print(f"  Actual: {actual_count} investors")
         print(f"  Status: {status}")

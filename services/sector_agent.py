@@ -156,15 +156,21 @@ def classify_sector(
         # Step 4: Call OpenAI with structured output
         system_prompt = f"""You are a startup sector classification expert.
 
-Classify the given text into exactly ONE of these sectors: {', '.join(valid_sectors)}
+Your task: Identify what sector/industry the USER'S STARTUP or COMPANY operates in.
+
+Valid sectors: {', '.join(valid_sectors)}
 
 Guidelines:
-- Choose the MOST specific sector that fits
+- Focus ONLY on what the user's startup/company/business DOES or BUILDS
+- Ignore any mentions of investors, funding sources, or "who would invest"
+- Example: "Who would invest in my social media startup?" → classify as "Social Media" (their startup's sector)
+- Example: "We're building a fintech app" → classify as fintech-related sector
+- Choose the MOST specific sector that matches the user's business
 - If multiple sectors apply, choose the primary/dominant one
-- Provide a confidence score (0-1) based on how clear the sector is from the text
+- Provide a confidence score (0-1) based on how clear the business sector is
 - Give a brief rationale explaining your choice
 
-Be precise and analytical in your classification."""
+Remember: You are classifying the USER'S BUSINESS SECTOR, not investor types or funding sources."""
 
         response = client.chat.completions.create(
             model=model,
