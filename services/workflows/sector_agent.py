@@ -22,6 +22,7 @@ from pymongo import MongoClient
 from openai import OpenAI
 
 # Import database configuration
+import sys
 from config.settings import DATABASE_CONFIG
 
 logger = logging.getLogger(__name__)

@@ -2,10 +2,7 @@ import streamlit as st
 import sys
 import os
 
-# Add the services directory to the path
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'services'))
-
-from hackernews_service import HackerNewsService
+from services.hackernews_service import HackerNewsService
 
 def hackernews_page():
     """Hacker News Intelligence page"""

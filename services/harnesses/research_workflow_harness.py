@@ -9,12 +9,7 @@ import asyncio
 import sys
 import os
 
-# Add project root to path to enable services. imports
-parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-project_root = os.path.dirname(parent_dir)
-sys.path.insert(0, project_root)
-
-from services.workflows.research_workflow import run_research_workflow
+from services.research_workflow import run_research_workflow
 
 
 # Test data - same queries as in rag_service_agent.py
