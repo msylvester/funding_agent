@@ -109,73 +109,57 @@ def research_page():
             # Display Research Results
             st.markdown(f"### 🔍 Research Results for: *{query_text}*")
 
-            # Extract research and summary from result
+            # Extract research results
             research_result = results.get('result', {})
 
-            # Display Summary
-            if 'summary' in research_result and research_result['summary']:
-                summary = research_result['summary']
+            # Display Web Research Results (companies dict)
+            web_research = research_result.get('web_research', {})
+            companies_dict = web_research.get('companies', {})
 
-                st.markdown("#### 📊 Summary")
+            if companies_dict:
+                st.markdown("#### 📊 Companies Found")
 
-                # Create a nice card for the summary
-                with st.container():
-                    # Escape HTML entities to prevent rendering issues
-                    company_name_escaped = html.escape(summary.get('company_name', 'N/A'))
+                for idx, (company_name, details) in enumerate(companies_dict.items(), 1):
+                    # Create a card for each company
+                    with st.container():
+                        # Escape HTML entities to prevent rendering issues
+                        company_name_escaped = html.escape(company_name)
 
-                    st.markdown(
-                        f"""
-                        <div style='background-color: #f0f2f6; padding: 1.5rem; border-radius: 10px; margin-bottom: 1rem;'>
-                            <h3 style='margin-top: 0;'>{company_name_escaped}</h3>
-                        </div>
-                        """,
-                        unsafe_allow_html=True
-                    )
+                        st.markdown(
+                            f"""
+                            <div style='background-color: #f0f2f6; padding: 1.5rem; border-radius: 10px; margin-bottom: 1rem;'>
+                                <h3 style='margin-top: 0;'>{company_name_escaped}</h3>
+                            </div>
+                            """,
+                            unsafe_allow_html=True
+                        )
 
-                    # Company details in columns
-                    col1, col2 = st.columns(2)
+                        # Company details in columns
+                        col1, col2 = st.columns(2)
 
-                    with col1:
-                        st.markdown(f"**Industry:** {summary.get('industry', 'N/A')}")
-                        st.markdown(f"**Founded:** {summary.get('founded_year', 'N/A')}")
-                        st.markdown(f"**Headquarters:** {summary.get('headquarters_location', 'N/A')}")
+                        with col1:
+                            st.markdown(f"**Industry:** {details.get('industry', 'N/A')}")
+                            founded = details.get('founded_year', 'N/A')
+                            # Handle float years (e.g., 2014.0 -> 2014)
+                            if isinstance(founded, float):
+                                founded = int(founded)
+                            st.markdown(f"**Founded:** {founded}")
+                            st.markdown(f"**Location:** {details.get('headquarters_location', 'N/A')}")
 
-                    with col2:
-                        st.markdown(f"**Company Size:** {summary.get('company_size', 'N/A')}")
-                        if summary.get('website'):
-                            st.markdown(f"**Website:** [{summary['website']}]({summary['website']})")
+                        with col2:
+                            st.markdown(f"**Size:** {details.get('company_size', 'N/A')}")
+                            if details.get('website'):
+                                st.markdown(f"**Website:** [{details['website']}]({details['website']})")
 
-                    # Description
-                    if summary.get('description'):
-                        st.markdown("**Description:**")
-                        st.markdown(summary['description'])
+                        # Description
+                        if details.get('description'):
+                            st.markdown("**Description:**")
+                            st.markdown(details['description'])
 
-            # Display Detailed Research
-            if 'research' in research_result and research_result['research']:
-                research = research_result['research']
-
-                if 'companies' in research and research['companies']:
-                    st.markdown("---")
-                    st.markdown("#### 📚 Detailed Research")
-
-                    for idx, company in enumerate(research['companies'], 1):
-                        with st.expander(f"{idx}. {company.get('company_name', 'Unknown Company')}", expanded=(idx == 1)):
-                            col1, col2 = st.columns(2)
-
-                            with col1:
-                                st.markdown(f"**Industry:** {company.get('industry', 'N/A')}")
-                                st.markdown(f"**Founded:** {company.get('founded_year', 'N/A')}")
-                                st.markdown(f"**Headquarters:** {company.get('headquarters_location', 'N/A')}")
-
-                            with col2:
-                                st.markdown(f"**Company Size:** {company.get('company_size', 'N/A')}")
-                                if company.get('website'):
-                                    st.markdown(f"**Website:** [{company['website']}]({company['website']})")
-
-                            # Description
-                            if company.get('description'):
-                                st.markdown("**Description:**")
-                                st.markdown(company['description'])
+                        if idx < len(companies_dict):
+                            st.markdown("---")
+            else:
+                st.info("No companies found matching your query.")
 
     # Show helpful message if no results yet
     elif search_button:
