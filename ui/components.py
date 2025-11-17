@@ -3,8 +3,8 @@ Reusable UI components for the Streamlit application
 """
 
 import streamlit as st
-from services.data_service import DataService
-from services.scraper_service import TechCrunchScraper
+from services.database.data_service import DataService
+from services.scrapers.scraper_service import TechCrunchScraper
 
 def render_header():
     """Render the main header section"""

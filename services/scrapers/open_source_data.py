@@ -6,6 +6,7 @@ import os
 import requests
 from typing import List, Dict, Any
 import logging
+from bs4 import BeautifulSoup
 
 logger = logging.getLogger(__name__)
 
@@ -14,10 +15,13 @@ class OpenSourceDataService:
 
     def __init__(self, github_token: str = None):
         self.github_api_base = "https://api.github.com"
+        self.github_trending_url = "https://github.com/trending"
         self.github_token = github_token or os.getenv('GITHUB_TOKEN')
 
         # Set up headers with authentication if token is available
-        self.headers = {}
+        self.headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
         if self.github_token:
             self.headers['Authorization'] = f'token {self.github_token}'
             logger.info("GitHub token configured - using authenticated requests")
@@ -26,71 +30,119 @@ class OpenSourceDataService:
         
     def get_trending_repositories(self, language: str = None, time_range: str = "daily") -> List[Dict[str, Any]]:
         """
-        Fetch trending repositories from GitHub
-        
+        Fetch trending repositories from GitHub by scraping the trending page
+
         Args:
             language: Programming language filter (optional)
             time_range: Time range for trending (daily, weekly, monthly)
-            
+
         Returns:
             List of repository data
         """
         try:
-            # Calculate date range for pushed updates (GitHub trending considers recent activity)
-            from datetime import datetime, timedelta
-            
-            if time_range == "daily":
-                since_date = datetime.now() - timedelta(days=1)
-            elif time_range == "weekly":
-                since_date = datetime.now() - timedelta(weeks=1)
-            elif time_range == "monthly":
-                since_date = datetime.now() - timedelta(days=30)
-            else:
-                since_date = datetime.now() - timedelta(days=1)
-                
-            date_str = since_date.strftime("%Y-%m-%d")
-            
-            # Build search query to find recently active repos with minimal star threshold
-            # Focus on repos that have recent activity and some community interest
-            query = f"pushed:>{date_str} stars:>1"
-            if language:
-                query += f" language:{language}"
-                
-            # GitHub Search API endpoint
-            url = f"{self.github_api_base}/search/repositories"
-            params = {
-                "q": query,
-                "sort": "updated",
-                "order": "desc",
-                "per_page": 50  # Get more results to filter
-            }
+            # Build URL for trending page
+            url = self.github_trending_url
+            params = {}
 
+            if language and language.lower() != "english":  # Skip invalid language filter
+                params['spoken_language_code'] = language
+
+            # Map time_range to GitHub's since parameter
+            if time_range == "weekly":
+                params['since'] = "weekly"
+            elif time_range == "monthly":
+                params['since'] = "monthly"
+            else:
+                params['since'] = "daily"
+
+            # Fetch trending page HTML
             response = requests.get(url, params=params, headers=self.headers)
             response.raise_for_status()
-            
-            data = response.json()
+
+            # Parse HTML
+            soup = BeautifulSoup(response.content, 'html.parser')
             repositories = []
-            
-            for repo in data.get("items", [])[:20]:  # Take top 20
-                repo_data = {
-                    "name": repo["name"],
-                    "full_name": repo["full_name"],
-                    "description": repo["description"],
-                    "stars": repo["stargazers_count"],
-                    "forks": repo["forks_count"],
-                    "language": repo["language"],
-                    "url": repo["html_url"],
-                    "created_at": repo["created_at"],
-                    "updated_at": repo["updated_at"],
-                    "pushed_at": repo["pushed_at"],
-                    "owner": repo["owner"]["login"],
-                    "topics": repo.get("topics", [])
-                }
-                repositories.append(repo_data)
-                
-            logger.info(f"Retrieved {len(repositories)} trending repositories")
+
+            # Find all repository articles
+            repo_articles = soup.find_all('article', class_='Box-row')
+
+            for article in repo_articles[:25]:  # Get top 25 trending repos
+                try:
+                    # Extract repository name and owner
+                    repo_link = article.find('h2', class_='h3').find('a')
+                    if not repo_link:
+                        continue
+
+                    full_name = repo_link['href'].strip('/')
+                    owner, name = full_name.split('/')
+
+                    # Extract description
+                    desc_elem = article.find('p', class_='col-9')
+                    description = desc_elem.text.strip() if desc_elem else None
+
+                    # Extract language
+                    lang_spans = article.find_all('span', class_='d-inline-block')
+                    language_name = None
+                    for span in lang_spans:
+                        # Language span has ml-0 mr-3 classes and contains the language name
+                        if 'ml-0' in span.get('class', []) and 'mr-3' in span.get('class', []):
+                            language_name = span.text.strip()
+                            break
+
+                    # Extract stars (total) - from link ending in /stargazers
+                    stars = 0
+                    stars_link = article.find('a', href=lambda x: x and '/stargazers' in x)
+                    if stars_link:
+                        stars_text = stars_link.text.strip().replace(',', '')
+                        try:
+                            stars = int(stars_text)
+                        except ValueError:
+                            stars = 0
+
+                    # Extract forks - from link ending in /forks
+                    forks = 0
+                    forks_link = article.find('a', href=lambda x: x and '/forks' in x)
+                    if forks_link:
+                        forks_text = forks_link.text.strip().replace(',', '')
+                        try:
+                            forks = int(forks_text)
+                        except ValueError:
+                            forks = 0
+
+                    # Extract stars gained today/this week/this month
+                    stars_gained_elem = article.find('span', class_='d-inline-block float-sm-right')
+                    stars_gained = 0
+                    if stars_gained_elem:
+                        gained_text = stars_gained_elem.text.strip()
+                        # Extract number from text like "1,234 stars today"
+                        import re
+                        match = re.search(r'([\d,]+)\s+stars?', gained_text)
+                        if match:
+                            try:
+                                stars_gained = int(match.group(1).replace(',', ''))
+                            except ValueError:
+                                stars_gained = 0
+
+                    repo_data = {
+                        "name": name,
+                        "full_name": full_name,
+                        "description": description,
+                        "stars": stars,
+                        "forks": forks,
+                        "stars_gained": stars_gained,
+                        "language": language_name,
+                        "url": f"https://github.com/{full_name}",
+                        "owner": owner
+                    }
+                    repositories.append(repo_data)
+
+                except Exception as e:
+                    logger.warning(f"Error parsing repository article: {e}")
+                    continue
+
+            logger.info(f"Retrieved {len(repositories)} trending repositories from GitHub trending page")
             return repositories
-            
+
         except requests.exceptions.RequestException as e:
             logger.error(f"Error fetching trending repositories: {e}")
             return []
@@ -319,7 +371,9 @@ if __name__ == "__main__":
     # Test the service
     service = OpenSourceDataService()
     print("Fetching trending repositories...")
-    repos = service.get_trending_repositories(language="english")
+    repos = service.get_trending_repositories()
     print(f"Found {len(repos)} repositories:")
-    for repo in repos:  # Show all repositories
-        print(f"- {repo['name']} ({repo['stars']} stars) - {repo['description'][:100] if repo['description'] else 'No description'}...")
+    for repo in repos:
+        stars_gained_text = f" (+{repo['stars_gained']} today)" if repo['stars_gained'] > 0 else ""
+        desc = repo['description'][:80] + "..." if repo['description'] else "No description"
+        print(f"- {repo['name']} ({repo['stars']:,} stars{stars_gained_text}) - {desc}")

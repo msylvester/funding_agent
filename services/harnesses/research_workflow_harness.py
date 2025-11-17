@@ -9,7 +9,7 @@ import asyncio
 import sys
 import os
 
-from services.research_workflow import run_research_workflow
+from services.workflows.research_workflow import run_research_workflow
 
 
 # Test data - same queries as in rag_service_agent.py

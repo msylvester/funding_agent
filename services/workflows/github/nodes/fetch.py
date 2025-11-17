@@ -2,14 +2,11 @@
 Fetch nodes for GitHub workflow
 """
 
-import sys
-import os
-
 from typing import Dict, Any
 import logging
-from services.open_source_data import OpenSourceDataService
-from services.github_trending import GitHubTrendingScraper
-from services.github_workflows.github.state import GitHubState
+from services.scrapers.open_source_data import OpenSourceDataService
+from services.scrapers.github_trending import GitHubTrendingScraper
+from services.workflows.github.state import GitHubState
 
 logger = logging.getLogger(__name__)
 

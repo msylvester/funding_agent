@@ -4,8 +4,8 @@ Selection node for GitHub workflow
 
 from typing import Dict, Any
 import logging
-from services.custom_agents.agents.open_source_agent import OpenSourceAgent
-from services.github_workflows.github.state import GitHubState
+from services.agents.custom.agents.open_source_agent import OpenSourceAgent
+from services.workflows.github.state import GitHubState
 
 logger = logging.getLogger(__name__)
 

@@ -15,12 +15,12 @@ from typing import Any
 from agents import Agent, ModelSettings, Runner, RunConfig, TResponseInputItem, trace, WebSearchTool, AgentOutputSchema
 from pydantic import BaseModel
 from typing import Optional
-from services.rag_service_agent import get_rag_tools
+from services.agents.rag_service_agent import get_rag_tools
 
 
 class RagResearchAgentSchema__CompaniesItem(BaseModel):
-    company_name: str #REVISIT b/c its being gen'd
-    description: str #i am worried that the decipriton is being generated {Comppan_name: company name Despriton: { Desciption }
+    company_name: str
+    description: str
     industry: Optional[str] = None
     relevance_score: Optional[float] = None
 
@@ -85,8 +85,6 @@ Focus on finding accurate, up-to-date information from official sources. Search 
         store=True,
     ),
 )
-
-
 
 
 rag_research_agent = Agent(

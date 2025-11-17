@@ -2,7 +2,7 @@ import streamlit as st
 import sys
 import os
 
-from services.hackernews_service import HackerNewsService
+from services.scrapers.hackernews_service import HackerNewsService
 
 def hackernews_page():
     """Hacker News Intelligence page"""

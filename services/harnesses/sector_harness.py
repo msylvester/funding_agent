@@ -1,14 +1,6 @@
 import asyncio
 import argparse
-import os
-import sys
-
-# Add project root to path to enable services. imports
-parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-project_root = os.path.dirname(parent_dir)
-sys.path.insert(0, project_root)
-
-from services.workflows.sector_agent import classify_sector, get_valid_sectors
+from services.agents.sector_agent import classify_sector, get_valid_sectors
 
 # Define test cases for sector classification
 TEST_CASES = [

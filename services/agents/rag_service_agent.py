@@ -17,7 +17,7 @@ from typing import Any
 import json
 
 # Import DataService for RAG functionality
-from services.data_service import DataService
+from services.database.data_service import DataService
 
 
 # ===============================

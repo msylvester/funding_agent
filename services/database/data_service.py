@@ -1,7 +1,7 @@
 """
 Data service layer for handling database operations
 """
-from services.database import FundingDatabase
+from services.database.database import FundingDatabase
 from typing import List, Dict, Any, Optional
 from openai import OpenAI
 import chromadb
@@ -29,7 +29,7 @@ class DataService:
 
         # Load OpenRouter API configuration
         from config.settings import API_CONFIG
-        from services.custom_agents.agent_rag import RAGAgent
+        from services.agents.custom.agent_rag import RAGAgent
         
         # Initialize RAG Agent
         self.rag_agent = RAGAgent(

@@ -5,7 +5,7 @@ Combines trending and awesome repos into a single deduplicated list
 
 from typing import Dict, Any, List
 import logging
-from services.github_workflows.github.state import GitHubState
+from services.workflows.github.state import GitHubState
 
 logger = logging.getLogger(__name__)
 

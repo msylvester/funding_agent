@@ -4,7 +4,7 @@ Execution and CLI for GitHub workflow
 
 from typing import Dict, Any
 import logging
-from services.github_workflows.github.graph import create_github_workflow
+from services.workflows.github.graph import create_github_workflow
 
 logger = logging.getLogger(__name__)
 

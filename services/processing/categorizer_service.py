@@ -5,7 +5,7 @@ Service for categorizing GitHub repositories based on their metadata
 from typing import Dict, Any
 import logging
 from services.models.categories import RepoCategory
-from services.custom_agents.agent_cat import categorize_repo
+from services.agents.custom.agent_cat import categorize_repo
 
 logger = logging.getLogger(__name__)
 

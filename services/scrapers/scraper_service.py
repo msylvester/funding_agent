@@ -2,8 +2,8 @@ import requests
 from bs4 import BeautifulSoup
 import json
 import time
-from services.article_processor import ArticleProcessor
-from services.database import FundingDatabase
+from services.processing.article_processor import ArticleProcessor
+from services.database.database import FundingDatabase
 
 
 class TechCrunchScraper:

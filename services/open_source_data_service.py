@@ -2,11 +2,8 @@
 Aggregation service that combines results from GitHub API and web scraping
 """
 
-import sys
-import os
-
-from services.github_trending import GitHubTrendingScraper
-from services.open_source_data import OpenSourceDataService
+from services.scrapers.github_trending import GitHubTrendingScraper
+from services.scrapers.open_source_data import OpenSourceDataService
 from typing import List, Dict, Any
 import logging
 

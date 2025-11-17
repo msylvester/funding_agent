@@ -9,7 +9,7 @@ import json
 import os
 import sys
 
-rom services.advice_workflow import get_investor_advice_sync
+from services.workflows.advice_workflow import get_investor_advice_sync
 
 # Load test cases from advice_eval.json
 eval_path = os.path.join(os.path.dirname(__file__), 'fixtures', 'advice_eval.json')

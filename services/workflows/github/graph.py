@@ -3,12 +3,12 @@ Graph construction for GitHub workflow
 """
 
 from langgraph.graph import StateGraph, START, END
-from services.github_workflows.github.state import GitHubState
-from services.github_workflows.github.nodes.fetch import fetch_trending_node, fetch_awesome_node
-from services.github_workflows.github.nodes.aggregate import aggregate_repos_node
-from services.github_workflows.github.nodes.enrich import enrich_details_node
-from services.github_workflows.github.nodes.select import select_must_see_node
-from services.github_workflows.github.conditions import should_enrich
+from services.workflows.github.state import GitHubState
+from services.workflows.github.nodes.fetch import fetch_trending_node, fetch_awesome_node
+from services.workflows.github.nodes.aggregate import aggregate_repos_node
+from services.workflows.github.nodes.enrich import enrich_details_node
+from services.workflows.github.nodes.select import select_must_see_node
+from services.workflows.github.conditions import should_enrich
 
 
 def create_github_workflow() -> StateGraph:

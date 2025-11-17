@@ -11,7 +11,7 @@ import chromadb
 import os
 import sys
 
-from services.database import FundingDatabase
+from services.database.database import FundingDatabase
 
 
 def create_rag_agent():

@@ -4,8 +4,8 @@ Enrichment node for GitHub workflow
 
 from typing import Dict, Any
 import logging
-from services.open_source_data import OpenSourceDataService
-from services.github_workflows.github.state import GitHubState
+from services.scrapers.open_source_data import OpenSourceDataService
+from services.workflows.github.state import GitHubState
 
 logger = logging.getLogger(__name__)
 
