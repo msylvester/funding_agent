@@ -147,22 +147,25 @@ class DataService:
             if self.documents:
                 embeddings = self._get_embeddings(self.documents)
 
-                # Handle dimension mismatch by recreating collection
+                # Handle dimension mismatch by clearing collection (preserves UUID)
                 try:
-                    # Always delete and recreate collection to avoid dimension mismatch
-                    print("🔧 DEBUG: Recreating ChromaDB collection to avoid dimension mismatch...")
-                    try:
-                        self.chroma_client.delete_collection("funding_data_embeddings")
-                        print("🔧 DEBUG: Deleted existing collection")
-                    except Exception as e:
-                        print(f"🔧 DEBUG: Collection didn't exist or couldn't delete: {e}")
+                    # Use get_or_create to maintain same collection UUID
+                    print("🔧 DEBUG: Getting/creating ChromaDB collection...")
+                    self.chroma_collection = self.chroma_client.get_or_create_collection("funding_data_embeddings")
 
-                    # Create fresh collection
-                    self.chroma_collection = self.chroma_client.create_collection("funding_data_embeddings")
-                    print(f"🔧 DEBUG: Created new collection with dimension {len(embeddings[0])}")
+                    # Clear existing documents instead of deleting collection
+                    existing_data = self.chroma_collection.get()
+                    if existing_data["ids"]:
+                        print(f"🔧 DEBUG: Clearing {len(existing_data['ids'])} existing documents...")
+                        self.chroma_collection.delete(ids=existing_data["ids"])
+                        print("🔧 DEBUG: Cleared existing documents")
+                    else:
+                        print("🔧 DEBUG: Collection was empty, no documents to clear")
+
+                    print(f"🔧 DEBUG: Collection ready with dimension {len(embeddings[0])}")
 
                 except Exception as e:
-                    print(f"❌ ERROR: Failed to recreate collection: {e}")
+                    print(f"❌ ERROR: Failed to prepare collection: {e}")
                     raise
 
                 # Store each document's embedding into ChromaDB

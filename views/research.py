@@ -5,7 +5,7 @@ Research page for company information using AI agents
 import streamlit as st
 import asyncio
 import html
-from services.orchestrator_workflow import run_orchestrator_workflow
+from services.workflows.orchestrator_workflow import run_orchestrator_workflow
 
 
 def research_page():

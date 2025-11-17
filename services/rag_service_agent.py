@@ -50,6 +50,16 @@ def _get_data_service() -> DataService:
     return _data_service_instance
 
 
+def reset_data_service():
+    """Reset the singleton DataService instance.
+
+    Call this after embed_data() to ensure fresh collection reference.
+    """
+    global _data_service_instance
+    _data_service_instance = None
+    print("🔄 DataService singleton reset - will reinitialize on next access")
+
+
 # ===============================
 # SCHEMAS
 # ===============================
