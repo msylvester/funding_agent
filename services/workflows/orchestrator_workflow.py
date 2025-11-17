@@ -93,29 +93,28 @@ async def classify_intent(query: str) -> dict[str, Any]:
             - intent: "advice" or "research"
             - reasoning: Explanation of classification
     """
-    with trace("Intent classification"):
-        conversation_history: list[TResponseInputItem] = [
-            {
-                "role": "user",
-                "content": [{"type": "input_text", "text": query}],
-            }
-        ]
-
-        classification_result = await Runner.run(
-            intent_classifier_agent,
-            input=conversation_history,
-            run_config=RunConfig(
-                trace_metadata={
-                    "__trace_source__": "intent-classifier",
-                    "workflow_id": "orchestrator_intent_classification",
-                }
-            ),
-        )
-
-        return {
-            "intent": classification_result.final_output.intent,
-            "reasoning": classification_result.final_output.reasoning,
+    conversation_history: list[TResponseInputItem] = [
+        {
+            "role": "user",
+            "content": [{"type": "input_text", "text": query}],
         }
+    ]
+
+    classification_result = await Runner.run(
+        intent_classifier_agent,
+        input=conversation_history,
+        run_config=RunConfig(
+            trace_metadata={
+                "__trace_source__": "intent-classifier",
+                "workflow_id": "orchestrator_intent_classification",
+            }
+        ),
+    )
+
+    return {
+        "intent": classification_result.final_output.intent,
+        "reasoning": classification_result.final_output.reasoning,
+    }
 
 
 # ===============================
