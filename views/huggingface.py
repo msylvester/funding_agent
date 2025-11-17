@@ -3,9 +3,9 @@ import sys
 import os
 from datetime import datetime
 
-from services.huggingface_data import HuggingFaceDataService
-from services.model_records_database import ModelRecordsDatabase
-# from services.custom_agents.arg import simulation  # Commented out - not needed for current functionality
+from services.scrapers.huggingface_data import HuggingFaceDataService
+from services.database.model_records_database import ModelRecordsDatabase
+# from services.agents.custom.arg import simulation  # Commented out - not needed for current functionality
 from langgraph.graph import END
 from langchain_core.messages import AIMessage, HumanMessage
 

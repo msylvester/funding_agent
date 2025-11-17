@@ -1,8 +1,8 @@
 import streamlit as st
 from ui.components import render_header, render_example_queries, render_search_form
 from ui.styles import apply_custom_styles
-from services.data_service import DataService
-from services.article_processor import ArticleProcessor
+from services.database.data_service import DataService
+from services.processing.article_processor import ArticleProcessor
 from urllib.parse import urlparse
 import requests
 

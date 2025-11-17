@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "funding_scraper"
+version = "0.1.0"
+description = "Funding data scraper and investor recommendation system"
+requires-python = ">=3.8"
+
+[tool.setuptools]
+packages = [
+    "services",
+    "services.agents",
+    "services.agents.custom",
+    "services.agents.custom.agents",
+    "services.scrapers",
+    "services.database",
+    "services.rag",
+    "services.workflows",
+    "services.workflows.github",
+    "services.workflows.github.nodes",
+    "services.processing",
+    "services.harnesses",
+    "services.models",
+    "config",
+    "views",
+    "ui",
+    "utils"
+]
