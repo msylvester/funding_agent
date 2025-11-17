@@ -6,16 +6,15 @@ from typing import Any
 
 from agents import Agent, ModelSettings, Runner, RunConfig, TResponseInputItem, trace
 from pydantic import BaseModel
+from typing import Optional
+from services.rag_service_agent import get_rag_tools
 
 
 class WebResearchAgentSchema__CompaniesItem(BaseModel):
     company_name: str
-    industry: str
-    headquarters_location: str
-    company_size: str
-    website: str
     description: str
-    founded_year: float
+    industry: Optional[str] = None
+    relevance_score: Optional[float] = None
 
 
 class WebResearchAgentSchema(BaseModel):
@@ -24,19 +23,37 @@ class WebResearchAgentSchema(BaseModel):
 
 class SummarizeAndDisplaySchema(BaseModel):
     company_name: str
-    industry: str
-    headquarters_location: str
-    company_size: str
-    website: str
     description: str
-    founded_year: float
+    industry: Optional[str] = None
+    relevance_score: Optional[float] = None
 
 
 web_research_agent = Agent(
     name="Web research agent",
-    instructions="You are a helpful assistant. Use web search to find information about the following company I can use in marketing asset based on the underlying topic.",
-    model="gpt-4o-mini",
+    instructions="""You are a research assistant with access to a RAG (Retrieval Augmented Generation) knowledge base
+of funded startup companies.
+
+Your available tools:
+- rag_semantic_search: Search the vector database for relevant company documents
+- rag_generate_reasoning: Synthesize information from retrieved documents
+- rag_full_query: Combined search + reasoning in one call
+
+Your workflow:
+1. Use rag_semantic_search to find relevant company documents based on the query
+2. Analyze the retrieved documents and their distance scores
+3. Extract company information from the results to build your response
+
+Guidelines:
+- Lower distance scores indicate higher relevance (< 1.0 is very relevant, > 1.5 is loosely relevant)
+- Focus on the company_name and description from the retrieved documents
+- If no relevant documents are found, return an empty companies list
+- Extract industry information from the document descriptions when possible
+- Only include companies that were actually found in the RAG search results
+
+Output your findings as a list of companies with the information retrieved from the database.""",
+    model="gpt-4o",
     output_type=WebResearchAgentSchema,
+    tools=get_rag_tools(),
     model_settings=ModelSettings(
         store=True,
     ),
