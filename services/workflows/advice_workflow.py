@@ -25,10 +25,7 @@ from mongodb_tools import (
 )
 
 # Sector classification agent
-try:
-    from services.sector_agent import classify_sector
-except ImportError:
-    from sector_agent import classify_sector
+from services.workflows.sector_agent import classify_sector
 
 # ===============================
 # SCHEMAS
