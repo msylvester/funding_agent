@@ -3,11 +3,8 @@ import sys
 import os
 from datetime import datetime
 
-# Add the services directory to the path
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'services'))
-
-from huggingface_data import HuggingFaceDataService
-from model_records_database import ModelRecordsDatabase
+from services.huggingface_data import HuggingFaceDataService
+from services.model_records_database import ModelRecordsDatabase
 # from services.custom_agents.arg import simulation  # Commented out - not needed for current functionality
 from langgraph.graph import END
 from langchain_core.messages import AIMessage, HumanMessage

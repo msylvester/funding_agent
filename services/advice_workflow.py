@@ -10,16 +10,13 @@ from agents import Agent, ModelSettings, Runner, RunConfig, TResponseInputItem, 
 from pydantic import BaseModel
 
 # Tools from your Mongo service
-from mongodb_tools import (
+from services.mongodb_tools import (
     search_funded_companies_by_sector,
     get_investors_for_sector,
 )
 
 # Sector classification agent
-try:
-    from services.sector_agent import classify_sector
-except ImportError:
-    from sector_agent import classify_sector
+from services.sector_agent import classify_sector
 
 # ===============================
 # SCHEMAS

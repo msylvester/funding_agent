@@ -11,11 +11,6 @@ import asyncio
 import sys
 import os
 
-# Path setup for imports
-parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if parent_dir not in sys.path:
-    sys.path.insert(0, parent_dir)
-
 from agents import Agent, ModelSettings, Runner, RunConfig, TResponseInputItem, trace, function_tool
 from pydantic import BaseModel
 from typing import Any

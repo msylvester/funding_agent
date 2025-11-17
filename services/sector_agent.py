@@ -15,7 +15,6 @@ from openai import OpenAI
 
 # Import database configuration
 import sys
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config.settings import DATABASE_CONFIG
 
 logger = logging.getLogger(__name__)

@@ -9,15 +9,6 @@ import json
 import os
 import sys
 
-# Add parent directory to path to enable services. imports
-parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, parent_dir)
-
-# Remove the services directory from sys.path to avoid shadowing the agents library
-script_dir = os.path.dirname(os.path.abspath(__file__))
-if script_dir in sys.path:
-    sys.path.remove(script_dir)
-
 from services.advice_workflow import get_investor_advice_sync
 
 # Load test cases from advice_eval.json

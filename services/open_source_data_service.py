@@ -4,9 +4,8 @@ Aggregation service that combines results from GitHub API and web scraping
 
 import sys
 import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from github_trending import GitHubTrendingScraper
+from services.github_trending import GitHubTrendingScraper
 from services.open_source_data import OpenSourceDataService
 from typing import List, Dict, Any
 import logging
