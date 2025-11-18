@@ -158,24 +158,24 @@ def research_page():
                     st.markdown("---")
                     st.markdown("#### 📚 Detailed Research")
 
-                    for idx, company in enumerate(research['companies'], 1):
-                        with st.expander(f"{idx}. {company.get('company_name', 'Unknown Company')}", expanded=(idx == 1)):
+                    for idx, (company_name, company_details) in enumerate(research['companies'].items(), 1):
+                        with st.expander(f"{idx}. {company_name}", expanded=(idx == 1)):
                             col1, col2 = st.columns(2)
 
                             with col1:
-                                st.markdown(f"**Industry:** {company.get('industry', 'N/A')}")
-                                st.markdown(f"**Founded:** {company.get('founded_year', 'N/A')}")
-                                st.markdown(f"**Headquarters:** {company.get('headquarters_location', 'N/A')}")
+                                st.markdown(f"**Industry:** {company_details.get('industry', 'N/A')}")
+                                st.markdown(f"**Founded:** {company_details.get('founded_year', 'N/A')}")
+                                st.markdown(f"**Headquarters:** {company_details.get('headquarters_location', 'N/A')}")
 
                             with col2:
-                                st.markdown(f"**Company Size:** {company.get('company_size', 'N/A')}")
-                                if company.get('website'):
-                                    st.markdown(f"**Website:** [{company['website']}]({company['website']})")
+                                st.markdown(f"**Company Size:** {company_details.get('company_size', 'N/A')}")
+                                if company_details.get('website'):
+                                    st.markdown(f"**Website:** [{company_details['website']}]({company_details['website']})")
 
                             # Description
-                            if company.get('description'):
+                            if company_details.get('description'):
                                 st.markdown("**Description:**")
-                                st.markdown(company['description'])
+                                st.markdown(company_details['description'])
 
     # Show helpful message if no results yet
     elif search_button:

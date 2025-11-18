@@ -1,24 +1,32 @@
 """Web research agent workflow for company information."""
 
 from __future__ import annotations
+import os
+import sys
+
+# Add project root to path to enable services. imports
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+project_root = os.path.dirname(parent_dir)
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
 
 from typing import Any
 
-from agents import Agent, ModelSettings, Runner, RunConfig, TResponseInputItem, trace
+from agents import Agent, ModelSettings, Runner, RunConfig, TResponseInputItem, trace, WebSearchTool, AgentOutputSchema
 from pydantic import BaseModel
 from typing import Optional
 from services.agents.rag_service_agent import get_rag_tools
 
 
-class WebResearchAgentSchema__CompaniesItem(BaseModel):
-    company_name: str
-    description: str
+class RagResearchAgentSchema__CompaniesItem(BaseModel):
+    company_name: str #REVISIT b/c its being gen'd
+    description: str #i am worried that the decipriton is being generated {Comppan_name: company name Despriton: { Desciption }
     industry: Optional[str] = None
     relevance_score: Optional[float] = None
 
 
-class WebResearchAgentSchema(BaseModel):
-    companies: list[WebResearchAgentSchema__CompaniesItem]
+class RagResearchAgentSchema(BaseModel):
+    companies: list[RagResearchAgentSchema__CompaniesItem]
 
 
 class SummarizeAndDisplaySchema(BaseModel):
@@ -28,8 +36,61 @@ class SummarizeAndDisplaySchema(BaseModel):
     relevance_score: Optional[float] = None
 
 
+class CompanyDetails(BaseModel):
+    website: str
+    company_size: str
+    headquarters_location: str
+    founded_year: float
+    industry: str
+    description: str
+
+
+class WebResearchAgentSchema(BaseModel):
+    companies: dict[str, CompanyDetails]  # key = company name
+
+
 web_research_agent = Agent(
     name="Web research agent",
+    instructions="""You are a research assistant that gathers additional company information using web search.
+
+For each company provided, use web search to find:
+- Official website URL
+- Company size (number of employees, e.g., "10-50", "100-500", "1000+")
+- Headquarters location (city, country)
+- Year the company was founded
+- Industry classification
+- Brief description of what the company does
+
+Output format: Return a dictionary where each key is the exact company name provided, and the value contains the company details.
+
+Example output structure:
+{
+  "companies": {
+    "Company Name Here": {
+      "website": "https://...",
+      "company_size": "10-50",
+      "headquarters_location": "City, Country",
+      "founded_year": 2020.0,
+      "industry": "Technology",
+      "description": "Brief description..."
+    }
+  }
+}
+
+Focus on finding accurate, up-to-date information from official sources. Search for each company individually to get the most accurate results.""",
+    model="gpt-4o-mini",
+    output_type=AgentOutputSchema(WebResearchAgentSchema, strict_json_schema=False),
+    tools=[WebSearchTool()],
+    model_settings=ModelSettings(
+        store=True,
+    ),
+)
+
+
+
+
+rag_research_agent = Agent(
+    name="RAG research agent",
     instructions="""You are a research assistant with access to a RAG (Retrieval Augmented Generation) knowledge base
 of funded startup companies.
 
@@ -52,7 +113,7 @@ Guidelines:
 
 Output your findings as a list of companies with the information retrieved from the database.""",
     model="gpt-4o",
-    output_type=WebResearchAgentSchema,
+    output_type=RagResearchAgentSchema,
     tools=get_rag_tools(),
     model_settings=ModelSettings(
         store=True,
@@ -85,21 +146,59 @@ async def run_research_workflow(input_text: str) -> dict[str, Any]:
     Returns:
         Dictionary containing the research results
     """
-    with trace("New workflow"):
-        workflow_input = WorkflowInput(input_as_text=input_text)
-        workflow = workflow_input.model_dump()
+    workflow_input = WorkflowInput(input_as_text=input_text)
+    workflow = workflow_input.model_dump()
 
-        conversation_history: list[TResponseInputItem] = [
+    conversation_history: list[TResponseInputItem] = [
+        {
+            "role": "user",
+            "content": [{"type": "input_text", "text": workflow["input_as_text"]}],
+        }
+    ]
+
+    # Run RAG research agent
+    rag_research_agent_result_temp = await Runner.run(
+        rag_research_agent,
+        input=conversation_history,
+        run_config=RunConfig(
+            trace_metadata={
+                "__trace_source__": "agent-builder",
+                "workflow_id": "wf_6909008d6bfc81909d1d9a9d8f3110c70af2d656afb56bf5",
+            }
+        ),
+    )
+
+    conversation_history.extend(
+        [item.to_input_item() for item in rag_research_agent_result_temp.new_items]
+    )
+
+    rag_research_agent_result = {
+        "output_text": rag_research_agent_result_temp.final_output.json(),
+        "output_parsed": rag_research_agent_result_temp.final_output.model_dump(),
+    }
+
+    # Run web research agent for each company found by RAG
+    companies_from_rag = rag_research_agent_result["output_parsed"]["companies"]
+
+
+    print(f"ATTN:the rag research companies are {companies_from_rag}")
+    
+    
+    if companies_from_rag:
+        # Create prompt with just company names - agent instructions handle the rest
+        company_names = [c["company_name"] for c in companies_from_rag]
+        web_research_prompt = ', '.join(company_names)
+
+        web_research_history: list[TResponseInputItem] = [
             {
                 "role": "user",
-                "content": [{"type": "input_text", "text": workflow["input_as_text"]}],
+                "content": [{"type": "input_text", "text": web_research_prompt}],
             }
         ]
-
-        # Run web research agent
+        print(f"ATTN: THE WEB SEARCH ISTHUS {web_research_history}")
         web_research_agent_result_temp = await Runner.run(
             web_research_agent,
-            input=conversation_history,
+            input=web_research_history,
             run_config=RunConfig(
                 trace_metadata={
                     "__trace_source__": "agent-builder",
@@ -107,35 +206,31 @@ async def run_research_workflow(input_text: str) -> dict[str, Any]:
                 }
             ),
         )
-
-        conversation_history.extend(
-            [item.to_input_item() for item in web_research_agent_result_temp.new_items]
-        )
-
+        print(f"the web reserach {web_research_agent_result_temp}")
         web_research_agent_result = {
             "output_text": web_research_agent_result_temp.final_output.json(),
             "output_parsed": web_research_agent_result_temp.final_output.model_dump(),
         }
+    else:
+        web_research_agent_result = {"output_parsed": {"companies": {}}}
 
-        # Run summarize and display agent
-        summarize_and_display_result_temp = await Runner.run(
-            summarize_and_display,
-            input=conversation_history,
-            run_config=RunConfig(
-                trace_metadata={
-                    "__trace_source__": "agent-builder",
-                    "workflow_id": "wf_6909008d6bfc81909d1d9a9d8f3110c70af2d656afb56bf5",
-                }
-            ),
-        )
+    # Format results for the view
+    web_companies = web_research_agent_result["output_parsed"]["companies"]
 
-        summarize_and_display_result = {
-            "output_text": summarize_and_display_result_temp.final_output.json(),
-            "output_parsed": summarize_and_display_result_temp.final_output.model_dump(),
+    # Create summary from the first company (if available)
+    summary = None
+    if web_companies:
+        first_company_name = list(web_companies.keys())[0]
+        first_company_data = web_companies[first_company_name]
+        summary = {
+            "company_name": first_company_name,
+            **first_company_data  # Spread all company details
         }
 
-        # Return both research and summary results
-        return {
-            "research": web_research_agent_result["output_parsed"],
-            "summary": summarize_and_display_result["output_parsed"],
+    # Return in the format expected by the view
+    return {
+        "summary": summary,
+        "research": {
+            "companies": web_companies
         }
+    }
