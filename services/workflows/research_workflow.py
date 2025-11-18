@@ -208,8 +208,23 @@ async def run_research_workflow(input_text: str) -> dict[str, Any]:
     else:
         web_research_agent_result = {"output_parsed": {"companies": {}}}
 
-    # Return RAG and web research results (no summary agent)
+    # Format results for the view
+    web_companies = web_research_agent_result["output_parsed"]["companies"]
+
+    # Create summary from the first company (if available)
+    summary = None
+    if web_companies:
+        first_company_name = list(web_companies.keys())[0]
+        first_company_data = web_companies[first_company_name]
+        summary = {
+            "company_name": first_company_name,
+            **first_company_data  # Spread all company details
+        }
+
+    # Return in the format expected by the view
     return {
-        "rag_research": rag_research_agent_result["output_parsed"],
-        "web_research": web_research_agent_result["output_parsed"],
+        "summary": summary,
+        "research": {
+            "companies": web_companies
+        }
     }

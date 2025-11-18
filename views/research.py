@@ -156,10 +156,32 @@ def research_page():
                             st.markdown("**Description:**")
                             st.markdown(details['description'])
 
-                        if idx < len(companies_dict):
-                            st.markdown("---")
-            else:
-                st.info("No companies found matching your query.")
+            # Display Detailed Research
+            if 'research' in research_result and research_result['research']:
+                research = research_result['research']
+
+                if 'companies' in research and research['companies']:
+                    st.markdown("---")
+                    st.markdown("#### 📚 Detailed Research")
+
+                    for idx, (company_name, company_details) in enumerate(research['companies'].items(), 1):
+                        with st.expander(f"{idx}. {company_name}", expanded=(idx == 1)):
+                            col1, col2 = st.columns(2)
+
+                            with col1:
+                                st.markdown(f"**Industry:** {company_details.get('industry', 'N/A')}")
+                                st.markdown(f"**Founded:** {company_details.get('founded_year', 'N/A')}")
+                                st.markdown(f"**Headquarters:** {company_details.get('headquarters_location', 'N/A')}")
+
+                            with col2:
+                                st.markdown(f"**Company Size:** {company_details.get('company_size', 'N/A')}")
+                                if company_details.get('website'):
+                                    st.markdown(f"**Website:** [{company_details['website']}]({company_details['website']})")
+
+                            # Description
+                            if company_details.get('description'):
+                                st.markdown("**Description:**")
+                                st.markdown(company_details['description'])
 
     # Show helpful message if no results yet
     elif search_button:
