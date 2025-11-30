@@ -219,7 +219,7 @@ def _show_confirmation_modal():
 def _confirm_and_save_article():
     """Confirm and save the article data to database"""
     try:
-        from services.article_processor import ArticleProcessor
+        from services.processing.article_processor import ArticleProcessor
         
         # Get data from session state
         article_data = st.session_state.pending_article_data

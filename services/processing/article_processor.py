@@ -10,7 +10,7 @@ Start of custom services
 '''
 from services.agents.custom.agents.agent_007 import is_funding_article_ai
 from services.agents.custom.agents.agent_blog_data_struct import enhance_with_ai
-from services.database.database import FundingDatabase
+from services.database.dual_database_manager import DualDatabaseManager
 
 
 class ArticleProcessor:
@@ -469,7 +469,7 @@ class ArticleProcessor:
         """
         try:
             # Initialize database connection
-            db = FundingDatabase()
+            db = DualDatabaseManager()
             
             # Check if company already exists in database
             company_name = company_data.get('company_name', '')
@@ -477,7 +477,7 @@ class ArticleProcessor:
             
             if not company_name or company_name == 'Not specified':
                 print(f"Skipping database write - no valid company name")
-                db.close_connection()
+                db.close_connections()
                 return None
             
             # Check for existing records by company name and URL
@@ -488,14 +488,14 @@ class ArticleProcessor:
                 for existing in existing_companies:
                     if existing.get('url') == url:
                         print(f"Company {company_name} with URL {url} already exists in database")
-                        db.close_connection()
+                        db.close_connections()
                         return None
             
             # If no duplicate found, create new record
             company_id = db.create_company(company_data)
             print(f"Successfully wrote {company_name} to database with ID: {company_id}")
-            
-            db.close_connection()
+
+            db.close_connections()
             return company_id
             
         except Exception as e:

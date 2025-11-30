@@ -10,6 +10,7 @@ from views.opensource import opensource_page
 from views.huggingface import huggingface_page
 from views.hackernews import hackernews_page
 from views.research import research_page
+from views.mongodb import mongodb_page
 
 def main():
     """Main application entry point"""
@@ -30,7 +31,7 @@ def main():
         # Navigation options with radio buttons for better UX
         page = st.radio(
             "Choose a page:",
-            ["🏠 Home", "💰 Funding", "🔓 Open Source", "🤗 Hugging Face", "📰 Hacker News", "🔬 Research"],
+            ["🏠 Home", "💰 Funding", "🔓 Open Source", "🤗 Hugging Face", "📰 Hacker News", "🔬 Research", "📊 MongoDB"],
             index=0,
             label_visibility="collapsed"
         )
@@ -52,6 +53,8 @@ def main():
         hackernews_page()
     elif page == "🔬 Research":
         research_page()
+    elif page == "📊 MongoDB":
+        mongodb_page()
 
 if __name__ == "__main__":
     main()

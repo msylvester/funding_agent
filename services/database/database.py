@@ -7,20 +7,21 @@ import os
 from bson import ObjectId
 
 class FundingDatabase:
-    def __init__(self, connection_string: str = None, db_name: str = 'funded_backup_20251105_121856'):
+    def __init__(self, connection_string: str = None, db_name: str = 'funded_backup_20251105_121856', collection_name: str = 'companies'):
         """
         Initialize MongoDB connection for funded companies database
 
         Args:
             connection_string: MongoDB connection string. If None, uses environment variable MONGODB_URI
-            db_name: Database name (default: 'funded')
+            db_name: Database name (default: 'funded_backup_20251105_121856')
+            collection_name: Collection name (default: 'companies')
         """
         if connection_string is None:
             connection_string = os.getenv('MONGODB_URI', 'mongodb://localhost:27017/')
 
         self.client = MongoClient(connection_string)
         self.db = self.client[db_name]
-        self.collection = self.db['companies']
+        self.collection = self.db[collection_name]
 
         # Create indexes for better query performance
         self._create_indexes()
